@@ -51,6 +51,7 @@ async function fetchPrice() {
     try {
         const r = await fetch(PRICE_URL);
         const arr = await r.json();
+        console.log("PRICE_URL response:", arr);
         return arr.find((x) => x.type.toLowerCase().includes(type.toLowerCase()));
     } catch (e) {
         console.error("PRICE_URL error", e);
