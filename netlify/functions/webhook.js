@@ -2,6 +2,10 @@ const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const PRICE_URL = process.env.PRICE_URL;
 
+
+function removeDiacritics(s) {
+    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
 exports.handler = async (event) => {
     // Facebook verify
     if (event.httpMethod === "GET") {
@@ -69,9 +73,7 @@ async function sendText(psid, text) {
     console.log("Graph API response:", data);
 }
 
-function removeDiacritics(s) {
-    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
+
 
 
 
