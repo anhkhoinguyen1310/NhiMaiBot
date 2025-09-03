@@ -28,13 +28,13 @@ exports.handler = async (event) => {
                 if (!psid) continue;
 
                 const q = removeDiacritics(String(text)).toLowerCase();
-                if ((/9999|4 so|4 số|4 sô|bốn số|nhẫn trơn/.test(q))) {
+                if (/9999|4 so|bon so|nhan tron/.test(q)) {
                     const d = await fetchPrice("Nhẫn 9999");
                     await sendText(psid, formatPrice(d));
-                } else if ((/24k|vàng ta|vàng 24k|vàng 24 k|vang 24|vàng 24/.test(q))) {
+                } else if (/24k|vang ta|vang 24/.test(q)) {
                     const d = await fetchPrice("24k");
                     await sendText(psid, formatPrice(d));
-                } else if ((/18k|vàng 18k|vàng 18 k| vàng Tây| vang tay| vàng tây| vàng 18| vang 18/.test(q))) {
+                } else if (/18k|vang tay|vang 18/.test(q)) {
                     const d = await fetchPrice("18k");
                     await sendText(psid, formatPrice(d));
                 }
