@@ -27,7 +27,7 @@ exports.handler = async (event) => {
                 const text = ev.message?.text || "";
                 if (!psid) continue;
 
-                const q = removeDiacritics(text)(String(text)).toLowerCase();
+                const q = removeDiacritics(String(text)).toLowerCase();
                 if ((/9999|4 so|4 số|4 sô|bốn số|nhẫn trơn/.test(q))) {
                     const d = await fetchPrice("Nhẫn 9999");
                     await sendText(psid, formatPrice(d));
