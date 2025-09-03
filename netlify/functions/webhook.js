@@ -47,7 +47,7 @@ exports.handler = async (event) => {
 
 return { statusCode: 405, body: "" };
 
-async function fetchPrice() {
+async function fetchPrice(type) {
     try {
         const r = await fetch(PRICE_URL);
         const arr = await r.json();
