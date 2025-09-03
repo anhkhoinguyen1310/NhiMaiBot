@@ -1,10 +1,9 @@
-// Netlify Function: Messenger webhook
-const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN; // token của Page
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN;           // ví dụ: verify_goldbot
-const PRICE_URL = process.env.PRICE_URL;                 // Apps Script /exec
+const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+const PRICE_URL = process.env.PRICE_URL;
 
 exports.handler = async (event) => {
-    // Facebook verification
+    // Facebook verify
     if (event.httpMethod === "GET") {
         const p = event.queryStringParameters || {};
         if (p["hub.mode"] === "subscribe" && p["hub.verify_token"] === VERIFY_TOKEN) {
@@ -13,7 +12,7 @@ exports.handler = async (event) => {
         return { statusCode: 403, body: "Forbidden" };
     }
 
-    // Receive messages
+    // Messenger events
     if (event.httpMethod === "POST") {
         const body = JSON.parse(event.body || "{}");
         if (body.object !== "page") return { statusCode: 404, body: "" };
@@ -24,16 +23,17 @@ exports.handler = async (event) => {
                 const text = ev.message?.text || "";
                 if (!psid) continue;
 
-                const t = removeDiacritics(String(text)).toLowerCase();
-                if (/(gia|giá|vang|vàng|9999|sjc)/.test(t)) {
+                const q = (text || "").toLowerCase();
+                if (q.includes("giá") || q.includes("9999")) {
                     const d = await fetchPrice();
                     const msg = formatPrice(d);
                     await sendText(psid, msg);
                 } else {
-                    await sendText(psid, 'Bạn có thể hỏi: "giá 9999 hôm nay?"');
+                    await sendText(psid, "Bạn có thể hỏi: 'giá 9999 hôm nay?'");
                 }
             }
         }
+
         return { statusCode: 200, body: "" };
     }
 
@@ -51,25 +51,29 @@ async function fetchPrice() {
 }
 
 async function sendText(psid, text) {
-    const url = `https://graph.facebook.com/v20.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
-    await fetch(url, {
+    const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+    const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             recipient: { id: psid },
-            messaging_type: "RESPONSE",
-            message: { text }
-        })
+            message: { text },
+        }),
     });
+    const data = await r.json();
+    console.log("Graph API response:", data);
 }
 
-function removeDiacritics(s) { return s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function formatPrice(d) {
     if (!d || !d.buyVND || !d.sellVND) return "Xin lỗi, giá hôm nay chưa được cập nhật.";
-    const when = new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }).format(new Date(d.updatedAt));
-    return `Giá ${d.type} hôm nay:
-• Mua: ${d.buyVND} / chỉ
-• Bán: ${d.sellVND} / chỉ
-• 1 lượng (10 chỉ): Mua ${d.buyPerLuongVND}, Bán ${d.sellPerLuongVND}
-(${when})`;
+    const when = new Intl.DateTimeFormat("vi-VN", {
+        hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit"
+    }).format(new Date(d.updatedAt));
+
+    return `✨ Giá vàng 9999 hôm nay ✨
+
+💰 Mua: ${d.buyVND} / chỉ
+💰  Bán: ${d.sellVND} / chỉ
+
+⏰ Cập nhật: ${when}`;
 }
