@@ -28,8 +28,6 @@ exports.handler = async (event) => {
                     const d = await fetchPrice();
                     const msg = formatPrice(d);
                     await sendText(psid, msg);
-                } else {
-                    await sendText(psid, "Bạn có thể hỏi: 'giá 9999 hôm nay?'");
                 }
             }
         }
