@@ -80,14 +80,22 @@ async function sendText(psid, text) {
 
 function formatPrice(d) {
     if (!d || !d.buyVND || !d.sellVND) return "Xin lỗi, giá hôm nay chưa được cập nhật.";
-    const when = new Intl.DateTimeFormat("vi-VN", {
-        hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit"
-    }).format(new Date(d.updatedAt));
 
-    return `✨ Giá vàng  ${d.type} hôm nay ✨
+    let when = "";
+    if (d.updatedAt) {
+        when = new Intl.DateTimeFormat("vi-VN", {
+            timeZone: "Asia/Ho_Chi_Minh",   // ép về giờ VN
+            hour: "2-digit",
+            minute: "2-digit",
+            day: "2-digit",
+            month: "2-digit"
+        }).format(new Date(d.updatedAt));
+    }
+
+    return `✨ Giá ${d.type} hôm nay ✨
 
 💰 Mua: ${d.buyVND} / chỉ
-💰  Bán: ${d.sellVND} / chỉ
+💰 Bán: ${d.sellVND} / chỉ
 
 ⏰ Cập nhật: ${when}`;
 }
