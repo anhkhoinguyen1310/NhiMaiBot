@@ -24,7 +24,7 @@ exports.handler = async (event) => {
                 if (!psid) continue;
 
                 const q = (text || "").toLowerCase();
-                if (q.includes("giá") || q.includes("9999")) {
+                if (q.includes("9999") || q.includes("4 số") || q.includes("4 sô") || q.includes("bốn số") || q.includes("nhẫn trơn")) {
                     const d = await fetchPrice();
                     const msg = formatPrice(d);
                     await sendText(psid, msg);
