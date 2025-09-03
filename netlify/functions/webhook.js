@@ -31,11 +31,11 @@ exports.handler = async (event) => {
                 if ((/9999|4 so|4 số|4 sô|bốn số|nhẫn trơn/.test(q))) {
                     const d = await fetchPrice("Nhẫn 9999");
                     await sendText(psid, formatPrice(d));
-                } else if ((/24k|vàng ta|vàng 24k|vàng 24 k| vang 24| vàng 24/.test(q))) {
-                    const d = await fetchPrice("Vàng 24k");
+                } else if ((/24k|vàng ta|vàng 24k|vàng 24 k|vang 24|vàng 24/.test(q))) {
+                    const d = await fetchPrice("24k");
                     await sendText(psid, formatPrice(d));
                 } else if ((/18k|vàng 18k|vàng 18 k| vàng Tây| vang tay| vàng tây| vàng 18| vang 18/.test(q))) {
-                    const d = await fetchPrice("Vàng 18K");
+                    const d = await fetchPrice("18k");
                     await sendText(psid, formatPrice(d));
                 }
             }
