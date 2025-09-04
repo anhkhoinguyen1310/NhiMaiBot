@@ -76,4 +76,4 @@ function detectType(rawText) {
     return { type: "unknown" };
 }
 
-module.exports = { detectType };
+module.exports = { detectType, normalize };
