@@ -32,10 +32,10 @@ exports.handler = async (event) => {
                     const d = await fetchPrice("Nhẫn 9999");
                     await sendText(psid, formatPrice(d));
                 } else if (/24k|vang ta|vang 24/.test(q)) {
-                    const d = await fetchPrice("24k");
+                    const d = await fetchPrice("Nữ Trang 980");
                     await sendText(psid, formatPrice(d));
                 } else if (/18k|vang tay|vang 18/.test(q)) {
-                    const d = await fetchPrice("18k");
+                    const d = await fetchPrice("Nữ Trang 610");
                     await sendText(psid, formatPrice(d));
                 }
             }
@@ -92,7 +92,7 @@ function formatPrice(d) {
         }).format(new Date(d.updatedAt));
     }
 
-    return `✨ Giá ${d.type} hôm nay ✨
+    return `✨ Giá Vàng ${d.type} hôm nay ✨
 
 💰 Mua: ${d.buyVND} / chỉ
 💰 Bán: ${d.sellVND} / chỉ
