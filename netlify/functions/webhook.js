@@ -92,7 +92,7 @@ function formatPrice(d) {
         }).format(new Date(d.updatedAt));
     }
 
-    return `✨ Giá Vàng ${d.type} hôm nay ✨
+    return `✨ Giá Vàng ${d.type} hiện tại ✨
 
 💰 Mua: ${d.buyVND} / chỉ
 💰 Bán: ${d.sellVND} / chỉ
