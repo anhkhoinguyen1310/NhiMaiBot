@@ -30,58 +30,60 @@ exports.handler = async (event) => {
                     let label = null;
 
                     switch (payload) {
-                        case "TALK_TO_AGENT":
-                            await sendText(psid, `
-                        ✳️ Quý khách vui lòng chờ đợi tiệm xíu nha, nhân viên sẽ hỗ trợ ngay ạ.
-                        ❗ Nếu cần gấp, xin gọi 0932 113 113.
-                        ❤️ Xin cảm ơn anh chị đã ủng hộ tiệm ❤️`);
-                            await sendTyping(psid, false);
-                            continue;
                         case "PRICE_NHAN_9999": label = "Nhẫn 9999"; break;
                         case "PRICE_VANG_18K": label = "Nữ Trang 610"; break;
                         case "PRICE_VANG_24K": label = "Nữ Trang 980"; break;
+                        case "TALK_TO_AGENT": {
+                            const msg = `
+                            ✳️ Quý khách vui lòng chờ trong giây lát, nhân viên sẽ hỗ trợ ngay ạ.
+                            ❗ Nếu cần gấp, xin gọi 0932 113 113.
+                            ❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️`.trim();
 
+                            await sendText(psid, msg);
+                            await sendTyping(psid, false);
+                            continue;
+
+                        }
+
+                            if (label) {
+                                const d = await fetchPrice(label);
+                                await sendText(psid, (!d || !d.buyVND || !d.sellVND) ? apologyText() : formatPrice(d));
+                            } else {
+                                await sendQuickPriceOptions(psid);
+                            }
+                            await sendTyping(psid, false);
+                            continue;
                     }
 
-                    if (label) {
-                        const d = await fetchPrice(label);
+                    // ---- text
+                    const text = ev.message?.text || "";
+                    if (!text) continue;
+
+                    const intent = detectType(text);
+                    // optional debug:
+                    // const { q } = normalize(text); console.log("DEBUG q:", q, "intent:", intent);
+
+                    await sendTyping(psid, true);
+
+                    if (intent.type === "ignore") {
+                        await sendTyping(psid, false);
+                        continue;
+                    }
+
+                    if (intent.type === "price") {
+                        const d = await fetchPrice(intent.label);
                         await sendText(psid, (!d || !d.buyVND || !d.sellVND) ? apologyText() : formatPrice(d));
-                    } else {
-                        await sendQuickPriceOptions(psid);
+                        await sendTyping(psid, false);
+                        continue;
                     }
+
+                    // fallback: unknown → hiện nút
+                    await sendQuickPriceOptions(psid);
                     await sendTyping(psid, false);
-                    continue;
                 }
-
-                // ---- text
-                const text = ev.message?.text || "";
-                if (!text) continue;
-
-                const intent = detectType(text);
-                // optional debug:
-                // const { q } = normalize(text); console.log("DEBUG q:", q, "intent:", intent);
-
-                await sendTyping(psid, true);
-
-                if (intent.type === "ignore") {
-                    await sendTyping(psid, false);
-                    continue;
-                }
-
-                if (intent.type === "price") {
-                    const d = await fetchPrice(intent.label);
-                    await sendText(psid, (!d || !d.buyVND || !d.sellVND) ? apologyText() : formatPrice(d));
-                    await sendTyping(psid, false);
-                    continue;
-                }
-
-                // fallback: unknown → hiện nút
-                await sendQuickPriceOptions(psid);
-                await sendTyping(psid, false);
             }
+            return { statusCode: 200, body: "" };
         }
-        return { statusCode: 200, body: "" };
-    }
 
-    return { statusCode: 405, body: "" };
-};
+        return { statusCode: 405, body: "" };
+    };
