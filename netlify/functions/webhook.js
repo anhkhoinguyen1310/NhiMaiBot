@@ -30,11 +30,15 @@ exports.handler = async (event) => {
                     let label = null;
 
                     switch (payload) {
+                        case "TALK_TO_AGENT":
+                            await sendText(psid, `
+                        ✳️ Quý khách vui lòng chờ đợi tiệm xíu nha, nhân viên sẽ hỗ trợ ngay ạ.
+                                
+                        ❗Nếu cần gấp, xin gọi 0932 113 113.
+                        ❤️Xin cảm ơn anh chị đã ủng hộ tiệm ❤️`);
                         case "PRICE_NHAN_9999": label = "Nhẫn 9999"; break;
                         case "PRICE_VANG_18K": label = "Nữ Trang 610"; break;
                         case "PRICE_VANG_24K": label = "Nữ Trang 980"; break;
-                        case "TALK_TO_AGENT":
-                            await sendText(psid, "✳️ Mình đã chuyển yêu cầu đến nhân viên. Anh/chị để lại số điện thoại hoặc nội dung cần hỗ trợ nhé!");
                             await sendTyping(psid, false);
                             continue;
                     }
