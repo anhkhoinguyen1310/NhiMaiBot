@@ -28,16 +28,25 @@ exports.handler = async (event) => {
                 if (!psid) continue;
 
                 const q = removeDiacritics(String(text)).toLowerCase();
-                if (/9999|4 so|bon so|nhan tron|gia|nhan/.test(q)) {
-                    const d = await fetchPrice("Nhẫn 9999");
-                    await sendText(psid, formatPrice(d));
-                } else if (/24k|vang ta|vang 24/.test(q)) {
+
+                if (/24k|vang ta|vang 24/.test(q)) {
                     const d = await fetchPrice("Nữ Trang 980");
                     await sendText(psid, formatPrice(d));
+
                 } else if (/18k|vang tay|vang 18/.test(q)) {
                     const d = await fetchPrice("Nữ Trang 610");
                     await sendText(psid, formatPrice(d));
+
+                } else if (/9999|4 so|bon so|nhan tron|nhan/.test(q)) {
+                    const d = await fetchPrice("Nhẫn 9999");
+                    await sendText(psid, formatPrice(d));
+
+                } else if (/gia|vang/.test(q)) {
+                    // fallback: nếu chỉ hỏi "giá" chung chung thì mặc định trả về nhẫn 9999
+                    const d = await fetchPrice("Nhẫn 9999");
+                    await sendText(psid, formatPrice(d));
                 }
+
             }
         }
     }
