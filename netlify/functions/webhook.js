@@ -1,13 +1,12 @@
-const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
-const PRICE_URL = process.env.PRICE_URL;
 
+const { detectType } = require("./lib/intent");
+const { fetchPrice } = require("./lib/price");
+const { formatPrice, apologyText } = require("./lib/format");
+const { sendText, sendQuickPriceOptions, sendTyping } = require("./lib/messenger");
 
-function removeDiacritics(s) {
-    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
 exports.handler = async (event) => {
-    // Facebook verify
+    // ----- Facebook Verify -----
     if (event.httpMethod === "GET") {
         const p = event.queryStringParameters || {};
         if (p["hub.mode"] === "subscribe" && p["hub.verify_token"] === VERIFY_TOKEN) {
@@ -16,104 +15,80 @@ exports.handler = async (event) => {
         return { statusCode: 403, body: "Forbidden" };
     }
 
-    // Messenger events
+    // ----- Messenger events -----
     if (event.httpMethod === "POST") {
         const body = JSON.parse(event.body || "{}");
         if (body.object !== "page") return { statusCode: 404, body: "" };
+
         for (const entry of body.entry || []) {
             for (const ev of entry.messaging || []) {
                 const psid = ev.sender?.id;
-                const text = ev.message?.text || "";
                 if (!psid) continue;
 
-                // 1) Dùng text gốc (có dấu) để phân biệt "nhận" vs "nhẫn"
-                const raw = String(text).toLowerCase();
+                // 1) Bắt quick reply / postback payload (nếu có) TRƯỚC
+                const payload =
+                    ev.message?.quick_reply?.payload ||
+                    ev.postback?.payload || null;
 
-                // Nếu có chữ "nhận" (verb) -> không trả lời gì
-                if (/\bnhận\b/.test(raw)) {
+                if (payload) {
+                    await sendTyping(psid, true);
+
+                    let label = null;
+                    switch (payload) {
+                        case "PRICE_NHAN_9999": label = "Nhẫn 9999"; break;
+                        case "PRICE_VANG_18K": label = "Nữ Trang 610"; break;
+                        case "PRICE_VANG_24K": label = "Nữ Trang 980"; break;
+                        default: break;
+                    }
+
+                    if (label) {
+                        const d = await fetchPrice(label);
+                        if (!d || !d.buyVND || !d.sellVND) {
+                            await sendText(psid, apologyText());
+                            await sendQuickPriceOptions(psid);
+                        } else {
+                            await sendText(psid, formatPrice(d));
+                        }
+                    } else {
+                        await sendQuickPriceOptions(psid);
+                    }
+
+                    await sendTyping(psid, false);
+                    continue; // đã xử lý event này
+                }
+
+                // 2) Nếu không có payload → xử lý text
+                const text = ev.message?.text || "";
+                if (!text) continue;
+
+                const intent = detectType(text);
+
+                await sendTyping(psid, true);
+
+                if (intent.type === "ignore") {
+                    await sendTyping(psid, false);
                     continue;
                 }
 
-                // 2) Chuẩn hoá không dấu để dò loại vàng
-                const q = removeDiacritics(raw).toLowerCase().trim();
-
-                // Ưu tiên 18k trước 24k để "vàng tây" không bị ăn nhầm "vàng ta"
-                if (/\b18\s*k\b|\bvang\s*tay\b|\bvang\s*18\b/.test(q)) {
-                    const d = await fetchPrice("Nữ Trang 610"); // 18k
-                    await sendText(psid, formatPrice(d));
-
-                } else if (/\b980\b|\b24\s*k\b|\bvang\s*ta\b|\bvang\s*24\b/.test(q)) {
-                    const d = await fetchPrice("Nữ Trang 980"); // 24k
-                    await sendText(psid, formatPrice(d));
-
-                } else if (/\b9999\b|\b4\s*so\b|\bbon\s*so\b|\bnhan\s*tron\b/.test(q)) {
-                    const d = await fetchPrice("Nhẫn 9999");
-                    await sendText(psid, formatPrice(d));
-
-                } else if (/\bgia\b|\bvang\b/.test(q)) {
-                    // hỏi "giá" chung chung -> mặc định nhẫn 9999
-                    const d = await fetchPrice("Nhẫn 9999");
-                    await sendText(psid, formatPrice(d));
+                if (intent.type === "price") {
+                    const d = await fetchPrice(intent.label);
+                    if (!d || !d.buyVND || !d.sellVND) {
+                        await sendText(psid, apologyText());
+                        await sendQuickPriceOptions(psid);
+                    } else {
+                        await sendText(psid, formatPrice(d));
+                    }
+                    await sendTyping(psid, false);
+                    continue;
                 }
+
+                // unknown → gợi ý quick replies
+                await sendQuickPriceOptions(psid);
+                await sendTyping(psid, false);
             }
         }
-
+        return { statusCode: 200, body: "" };
     }
 
-    return { statusCode: 200, body: "" };
-}
-
-return { statusCode: 405, body: "" };
-
-async function fetchPrice(type) {
-    try {
-        const r = await fetch(PRICE_URL);
-        const arr = await r.json();
-        console.log("PRICE_URL response:", arr);
-        return arr.find((x) => x.type.toLowerCase().includes(type.toLowerCase()));
-    } catch (e) {
-        console.error("PRICE_URL error", e);
-        return null;
-    }
-}
-
-async function sendText(psid, text) {
-    const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
-    const r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            recipient: { id: psid },
-            messaging_type: "RESPONSE",
-            message: { text },
-        }),
-    });
-    const data = await r.json();
-    console.log("Graph API response:", data);
-}
-
-
-
-
-
-function formatPrice(d) {
-    if (!d || !d.buyVND || !d.sellVND) return "Xin lỗi, giá hôm nay chưa được cập nhật.";
-
-    let when = "";
-    if (d.updatedAt) {
-        when = new Intl.DateTimeFormat("vi-VN", {
-            timeZone: "Asia/Ho_Chi_Minh",   // ép về giờ VN
-            hour: "2-digit",
-            minute: "2-digit",
-            day: "2-digit",
-            month: "2-digit"
-        }).format(new Date(d.updatedAt));
-    }
-
-    return `✨ Giá Vàng ${d.type} hiện tại ✨
-
-💰 Mua: ${d.buyVND} / chỉ
-💰 Bán: ${d.sellVND} / chỉ
-
-⏰ Cập nhật: ${when}`;
-}
+    return { statusCode: 405, body: "" };
+};
