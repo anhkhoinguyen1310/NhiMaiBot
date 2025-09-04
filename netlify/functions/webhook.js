@@ -9,6 +9,21 @@ const {
 } = require("./lib/messenger");
 const { removeDiacritics } = require("./lib/diacritics");
 
+async function logThreadOwner(psid) {
+    const PAGE_ID = process.env.PAGE_ID;                    // nhớ set env PAGE_ID
+    const ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;     // đã có sẵn
+
+    if (!PAGE_ID || !ACCESS_TOKEN) {
+        console.log("logThreadOwner: missing PAGE_ID or PAGE_ACCESS_TOKEN");
+        return;
+    }
+
+    const url = `https://graph.facebook.com/v18.0/${PAGE_ID}/thread_owner?recipient=${psid}&access_token=${ACCESS_TOKEN}`;
+    const r = await fetch(url);
+    const data = await r.json().catch(() => ({}));
+    console.log("thread_owner:", data);   // sẽ thấy app_id chủ thread hiện tại
+}
+
 exports.handler = async (event) => {
     // Verify webhook (GET)
     if (event.httpMethod === "GET") {
@@ -24,6 +39,9 @@ exports.handler = async (event) => {
         if (body.object !== "page") return { statusCode: 404, body: "" };
 
         for (const entry of body.entry || []) {
+            console.log("STANDBY EVENT:", JSON.stringify(ev));
+            console.log("STANDBY TEXT:", text);
+
             for (const ev of entry.standby || []) {
                 const psid = ev.sender?.id;
                 const text = ev.message?.text || "";
@@ -32,10 +50,12 @@ exports.handler = async (event) => {
                 // Chỉ cho phép từ khoá "bật bot" để lấy quyền về (tránh bot phá cuộc trò chuyện người thật)
                 const q = removeDiacritics(text).toLowerCase();
                 if (/\bbat\s*bot\b|\bmo\s*bot\b|\bxem\s*gia\b/.test(q)) {
-                    await takeThreadBack(psid);
+                    await takeThreadBack(psid, "user_requested_bot");
+                    await logThreadOwner(psid); // <-- check owner đã về app bot chưa
                     await sendText(psid, "🤖 Bot đã bật lại. Bạn muốn xem giá loại nào ạ?");
                     await sendQuickPriceOptions(psid);
                 }
+
             }
 
             // 🔹 Khi bot đang giữ thread control, sự kiện ở entry.messaging
@@ -61,6 +81,7 @@ exports.handler = async (event) => {
                                 "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️"
                             );
                             await passThreadToHuman(psid, "user_request_human");
+                            await logThreadOwner(psid);
                             await sendTyping(psid, false);
                             continue;
                         }

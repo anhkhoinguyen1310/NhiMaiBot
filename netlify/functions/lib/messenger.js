@@ -12,12 +12,14 @@ async function callGraph(body) {
 
 // generic caller for handover paths
 async function callGraphPath(path, body) {
-    const r = await fetch(`${GRAPH_BASE}/me/${path}?access_token=${PAGE_ACCESS_TOKEN}`, {
+    const r = await fetch(`https://graph.facebook.com/v18.0/me/${path}?access_token=${PAGE_ACCESS_TOKEN}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
     });
-    try { console.log(`Graph ${path} response:`, await r.json()); } catch { }
+    const data = await r.json().catch(() => ({}));
+    console.log(`Graph ${path} status=`, r.status, "body=", data);
+    return { ok: r.ok, data };
 }
 
 
