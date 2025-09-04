@@ -68,6 +68,11 @@ exports.handler = async (event) => {
                     await sendTyping(psid, false);
                     continue;
                 }
+                if (intent.type === "thanks") {
+                    await sendText(psid, "Dạ không có gì ạ ❤️!");
+                    await sendTyping(psid, false);
+                    continue;
+                }
 
                 if (intent.type === "price") {
                     const d = await fetchPrice(intent.label);

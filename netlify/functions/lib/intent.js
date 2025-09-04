@@ -35,6 +35,10 @@ const GENERIC_PRICE = [
     /\bgia\b/, /\bgia\s*vang\b/, /\bvang\b/
 ];
 
+const ThanksPaterns = [
+    /\bthank(s| you)?\b/, /\bcam on\b/, /\bcam on (nhieu|rat) (nhieu|lan)\b/,
+    /\bcam on (ban|chi|anh)\b/, /\bcam on (ban|chi|anh) (nhieu|rat) (nhieu|lan)\b/,];
+
 function detectType(rawText) {
     const { rawLower, q } = normalize(rawText);
 
@@ -49,6 +53,7 @@ function detectType(rawText) {
     if (any(GENERIC_PRICE, q)) {
         return { type: "price", label: "Nhẫn 9999", kind: "default" };
     }
+    if (any(ThanksPaterns, q)) return { type: "thanks" };
 
     // Không match gì → unknown (để hiện quick replies)
     return { type: "unknown" };
