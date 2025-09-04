@@ -7,6 +7,7 @@ const {
     sendText, sendQuickPriceOptions, sendTyping,
     passThreadToHuman, takeThreadBack
 } = require("./lib/messenger");
+const { removeDiacritics } = require("./lib/diacritics");
 
 exports.handler = async (event) => {
     // Verify webhook (GET)
