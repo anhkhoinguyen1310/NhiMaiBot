@@ -38,6 +38,7 @@ exports.handler = async (event) => {
         const body = JSON.parse(event.body || "{}");
         if (body.object !== "page") return { statusCode: 404, body: "" };
         for (const entry of body.entry || []) {
+            console.log("ENTRY Key:", Object.keys(entry));
             // ===== STANDBY: khi bot KHÔNG giữ thread =====
             for (const sEv of entry.standby || []) {
                 const psid = sEv.sender?.id;
