@@ -39,13 +39,14 @@ exports.handler = async (event) => {
         if (body.object !== "page") return { statusCode: 404, body: "" };
 
         for (const entry of body.entry || []) {
-            console.log("STANDBY EVENT:", JSON.stringify(ev));
-            console.log("STANDBY TEXT:", text);
-
             for (const ev of entry.standby || []) {
                 const psid = ev.sender?.id;
                 const text = ev.message?.text || "";
                 if (!psid || !text) continue;
+                // debug:
+                console.log("STANDBY EVENT:", JSON.stringify(ev));
+                console.log("STANDBY TEXT:", text);
+
 
                 // Chỉ cho phép từ khoá "bật bot" để lấy quyền về (tránh bot phá cuộc trò chuyện người thật)
                 const q = removeDiacritics(text).toLowerCase();
