@@ -37,30 +37,41 @@ exports.handler = async (event) => {
     if (event.httpMethod === "POST") {
         const body = JSON.parse(event.body || "{}");
         if (body.object !== "page") return { statusCode: 404, body: "" };
-
         for (const entry of body.entry || []) {
-            for (const ev of entry.standby || []) {
-                const psid = ev.sender?.id;
-                const text = ev.message?.text || "";
-                if (!psid || !text) continue;
-                // debug:
-                console.log("STANDBY EVENT:", JSON.stringify(ev));
-                console.log("STANDBY TEXT:", text);
+            // ===== STANDBY: khi bot KHÔNG giữ thread =====
+            for (const sEv of entry.standby || []) {
+                const psid = sEv.sender?.id;
+                const rawText = sEv.message?.text ?? "";
+                if (!psid) continue;
 
+                // log để chắc chắn bạn đang nhận standby
+                console.log("STANDBY RAW:", JSON.stringify(sEv));
 
-                // Chỉ cho phép từ khoá "bật bot" để lấy quyền về (tránh bot phá cuộc trò chuyện người thật)
-                const q = removeDiacritics(text).toLowerCase();
-                if (/\bbat\s*bot\b|\bmo\s*bot\b|\bxem\s*gia\b/.test(q)) {
-                    await takeThreadBack(psid, "user_requested_bot");
-                    await logThreadOwner(psid); // <-- check owner đã về app bot chưa
-                    await sendText(psid, "🤖 Bot đã bật lại. Bạn muốn xem giá loại nào ạ?");
-                    await sendQuickPriceOptions(psid);
+                if (!rawText) {
+                    console.log("STANDBY: no text -> skip"); // delivery/read… bỏ qua
+                    continue;
                 }
 
+                // chuẩn hoá chuỗi
+                const q = removeDiacritics(rawText).toLowerCase().replace(/\s+/g, " ").trim();
+                const reWake = /(^| )bat bot( |$)|(^| )mo bot( |$)|(^| )xem gia( |$)|(^| )bat lai bot( |$)/;
+
+                if (reWake.test(q)) {
+                    // LẤY QUYỀN TRƯỚC, chỉ gửi khi take OK
+                    const result = await takeThreadBack(psid, "user_requested_bot");
+                    console.log("take_thread_control:", result);
+                    await logThreadOwner(psid);
+
+                    if (result?.ok || result?.data?.success) {
+                        await sendText(psid, "🤖 Bot đã bật lại. Bạn muốn xem giá loại nào ạ?");
+                        await sendQuickPriceOptions(psid);
+                    } else {
+                        console.log("TAKE FAILED -> không gửi message vì chưa giữ quyền.");
+                    }
+                }
             }
 
-            // 🔹 Khi bot đang giữ thread control, sự kiện ở entry.messaging
-
+            // ===== MESSAGING: khi bot ĐANG giữ thread =====
             for (const ev of entry.messaging || []) {
                 const psid = ev.sender?.id;
                 if (!psid) continue;
@@ -76,14 +87,16 @@ exports.handler = async (event) => {
                         case "PRICE_VANG_18K": label = "Nữ Trang 610"; break;
                         case "PRICE_VANG_24K": label = "Nữ Trang 980"; break;
                         case "TALK_TO_AGENT": {
+                            // 👇 TẮT typing TRƯỚC, rồi mới pass (tránh lỗi #10)
                             await sendText(psid,
                                 "✳️ Quý khách vui lòng chờ trong giây lát, nhân viên sẽ hỗ trợ ngay ạ.\n" +
                                 "❗ Nếu cần gấp, xin gọi 0932 113 113.\n" +
                                 "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️"
                             );
-                            await passThreadToHuman(psid, "user_request_human");
+                            await sendTyping(psid, false);                 // <-- tắt trước khi pass
+                            const r = await passThreadToHuman(psid, "user_request_human");
+                            console.log("pass_thread_control:", r);
                             await logThreadOwner(psid);
-                            await sendTyping(psid, false);
                             continue;
                         }
                     }
@@ -102,22 +115,11 @@ exports.handler = async (event) => {
                 const text = ev.message?.text || "";
                 if (!text) continue;
 
-                const intent = detectType(text);
-                // optional debug:
-                // const { q } = normalize(text); console.log("DEBUG q:", q, "intent:", intent);
-
                 await sendTyping(psid, true);
+                const intent = detectType(text);
 
-                if (intent.type === "ignore") {
-                    await sendTyping(psid, false);
-                    continue;
-                }
-                if (intent.type === "thanks") {
-                    await sendText(psid, "Dạ không có gì ạ ❤️!");
-                    await sendTyping(psid, false);
-                    continue;
-                }
-
+                if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
+                if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
                 if (intent.type === "price") {
                     const d = await fetchPrice(intent.label);
                     await sendText(psid, (!d || !d.buyVND || !d.sellVND) ? apologyText() : formatPrice(d));
@@ -125,11 +127,11 @@ exports.handler = async (event) => {
                     continue;
                 }
 
-                // fallback: unknown → hiện nút
                 await sendQuickPriceOptions(psid);
                 await sendTyping(psid, false);
             }
         }
+
         return { statusCode: 200, body: "" };
     }
 
