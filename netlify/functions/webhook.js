@@ -45,7 +45,6 @@ exports.handler = async (event) => {
                         const d = await fetchPrice(label);
                         if (!d || !d.buyVND || !d.sellVND) {
                             await sendText(psid, apologyText());
-                            await sendQuickPriceOptions(psid);
                         } else {
                             await sendText(psid, formatPrice(d));
                         }
