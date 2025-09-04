@@ -27,25 +27,26 @@ exports.handler = async (event) => {
                 const text = ev.message?.text || "";
                 if (!psid) continue;
 
-                const q = removeDiacritics(String(text)).toLowerCase();
+                const q = removeDiacritics(String(text)).toLowerCase().trim();
 
-                if (/24k|vang ta|vang 24/.test(q)) {
-                    const d = await fetchPrice("Nữ Trang 980");
+                if (/\b18\s*k\b|\bvang\s*tay\b|\bvang\s*18\b/.test(q)) {
+                    const d = await fetchPrice("Nữ Trang 610"); // 18k
                     await sendText(psid, formatPrice(d));
 
-                } else if (/18k|vang tay|vang 18/.test(q)) {
-                    const d = await fetchPrice("Nữ Trang 610");
+                } else if (/\b24\s*k\b|\bvang\s*ta\b|\bvang\s*24\b/.test(q)) {
+                    const d = await fetchPrice("Nữ Trang 980"); // 24k
                     await sendText(psid, formatPrice(d));
 
-                } else if (/9999|4 so|bon so|nhan tron|nhan/.test(q)) {
+                } else if (/\b9999\b|\b4\s*so\b|\bbon\s*so\b|\bnhan\s*tron\b|\bnhan\b/.test(q)) {
                     const d = await fetchPrice("Nhẫn 9999");
                     await sendText(psid, formatPrice(d));
 
-                } else if (/gia|vang/.test(q)) {
-                    // fallback: nếu chỉ hỏi "giá" chung chung thì mặc định trả về nhẫn 9999
+                } else if (/\bgia\b|\bvang\b/.test(q)) {
+                    // fallback chung chung → mặc định trả nhẫn 9999
                     const d = await fetchPrice("Nhẫn 9999");
                     await sendText(psid, formatPrice(d));
                 }
+
 
             }
         }
