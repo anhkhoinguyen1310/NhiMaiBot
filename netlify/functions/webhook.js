@@ -5,6 +5,9 @@ const { fetchPrice } = require("./lib/price");
 const { formatPrice, apologyText } = require("./lib/format");
 const { sendText, sendQuickPriceOptions, sendTyping } = require("./lib/messenger");
 
+const { normalize } = require("./lib/intent");
+
+
 exports.handler = async (event) => {
     // ----- Facebook Verify -----
     if (event.httpMethod === "GET") {
@@ -56,11 +59,16 @@ exports.handler = async (event) => {
                     continue; // đã xử lý event này
                 }
 
+
                 // 2) Nếu không có payload → xử lý text
                 const text = ev.message?.text || "";
                 if (!text) continue;
 
                 const intent = detectType(text);
+                const { q } = normalize(text);
+                console.log("DEBUG q:", q);
+                console.log("DEBUG intent:", intent);
+
 
                 await sendTyping(psid, true);
 
