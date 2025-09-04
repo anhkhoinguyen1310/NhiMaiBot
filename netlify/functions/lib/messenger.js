@@ -1,14 +1,25 @@
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-const GRAPH_URL = `https://graph.facebook.com/v18.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+const GRAPH_BASE = "https://graph.facebook.com/v18.0";
 
 async function callGraph(body) {
-    const r = await fetch(GRAPH_URL, {
+    const r = await fetch(`${GRAPH_BASE}/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
     });
     try { console.log("Graph API response:", await r.json()); } catch { }
 }
+
+// generic caller for handover paths
+async function callGraphPath(path, body) {
+    const r = await fetch(`${GRAPH_BASE}/me/${path}?access_token=${PAGE_ACCESS_TOKEN}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    try { console.log(`Graph ${path} response:`, await r.json()); } catch { }
+}
+
 
 async function sendText(psid, text) {
     return callGraph({
@@ -41,5 +52,22 @@ async function sendQuickPriceOptions(psid) {
         },
     });
 }
+// 🔸 Handover: chuyển quyền cho Page Inbox (người thật)
+async function passThreadToHuman(psid, metadata = "handover_to_human") {
+    // Page Inbox app_id = 263902037430900
+    return callGraphPath("pass_thread_control", {
+        recipient: { id: psid },
+        target_app_id: 263902037430900,
+        metadata,
+    });
+}
+// 🔸 Handover: lấy quyền hội thoại về cho bot
+async function takeThreadBack(psid, metadata = "bot_resume") {
+    return callGraphPath("take_thread_control", {
+        recipient: { id: psid },
+        metadata,
+    });
+}
 
-module.exports = { sendText, sendQuickPriceOptions, sendTyping };
+
+module.exports = { sendText, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack };
