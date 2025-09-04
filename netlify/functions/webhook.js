@@ -42,7 +42,7 @@ exports.handler = async (event) => {
                     const d = await fetchPrice("Nữ Trang 610"); // 18k
                     await sendText(psid, formatPrice(d));
 
-                } else if (/\b24\s*k\b|\bvang\s*ta\b|\bvang\s*24\b/.test(q)) {
+                } else if (/\b980\b|\b24\s*k\b|\bvang\s*ta\b|\bvang\s*24\b/.test(q)) {
                     const d = await fetchPrice("Nữ Trang 980"); // 24k
                     await sendText(psid, formatPrice(d));
 
