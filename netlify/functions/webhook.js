@@ -20,15 +20,24 @@ exports.handler = async (event) => {
     if (event.httpMethod === "POST") {
         const body = JSON.parse(event.body || "{}");
         if (body.object !== "page") return { statusCode: 404, body: "" };
-
         for (const entry of body.entry || []) {
             for (const ev of entry.messaging || []) {
                 const psid = ev.sender?.id;
                 const text = ev.message?.text || "";
                 if (!psid) continue;
 
-                const q = removeDiacritics(String(text)).toLowerCase().trim();
+                // 1) Dùng text gốc (có dấu) để phân biệt "nhận" vs "nhẫn"
+                const raw = String(text).toLowerCase();
 
+                // Nếu có chữ "nhận" (verb) -> không trả lời gì
+                if (/\bnhận\b/.test(raw)) {
+                    continue;
+                }
+
+                // 2) Chuẩn hoá không dấu để dò loại vàng
+                const q = removeDiacritics(raw).toLowerCase().trim();
+
+                // Ưu tiên 18k trước 24k để "vàng tây" không bị ăn nhầm "vàng ta"
                 if (/\b18\s*k\b|\bvang\s*tay\b|\bvang\s*18\b/.test(q)) {
                     const d = await fetchPrice("Nữ Trang 610"); // 18k
                     await sendText(psid, formatPrice(d));
@@ -37,19 +46,18 @@ exports.handler = async (event) => {
                     const d = await fetchPrice("Nữ Trang 980"); // 24k
                     await sendText(psid, formatPrice(d));
 
-                } else if (/\b9999\b|\b4\s*so\b|\bbon\s*so\b|\bnhan\s*tron\b|\bnhan\b/.test(q)) {
+                } else if (/\b9999\b|\b4\s*so\b|\bbon\s*so\b|\bnhan\s*tron\b/.test(q)) {
                     const d = await fetchPrice("Nhẫn 9999");
                     await sendText(psid, formatPrice(d));
 
                 } else if (/\bgia\b|\bvang\b/.test(q)) {
-                    // fallback chung chung → mặc định trả nhẫn 9999
+                    // hỏi "giá" chung chung -> mặc định nhẫn 9999
                     const d = await fetchPrice("Nhẫn 9999");
                     await sendText(psid, formatPrice(d));
                 }
-
-
             }
         }
+
     }
 
     return { statusCode: 200, body: "" };
