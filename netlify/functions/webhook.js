@@ -93,7 +93,7 @@ exports.handler = async (event) => {
                             const r = await passThreadToHuman(psid, "user_request_human");
                             console.log("pass_thread_control:", r);
                             await logThreadOwner(psid);
-                            await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
+
                             continue; // từ đây KHÔNG gửi gì thêm nữa
 
                         }
