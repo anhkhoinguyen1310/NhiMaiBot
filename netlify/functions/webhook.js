@@ -7,7 +7,7 @@ const { fetchPrice } = require("./lib/price");
 const { formatPrice, apologyText } = require("./lib/format");
 const {
     sendText, sendQuickPriceOptions, sendTyping,
-    passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner
+    passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner, addLabelToUser, getOrCreateLabelId
 } = require("./lib/messenger");
 
 async function logThreadOwner(psid) {
@@ -57,7 +57,6 @@ exports.handler = async (event) => {
                     const r = await takeThreadBack(psid, "resume_button");
                     console.log("take_thread_control:", r);
                     if (r?.ok || r?.data?.success) {
-                        // (nhỏ) đợi 200ms cho chắc đã trở thành owner
                         await new Promise(x => setTimeout(x, 200));
                         await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
                         // (tuỳ chọn) gợi ý tiếp
@@ -119,6 +118,12 @@ exports.handler = async (event) => {
                         case "PRICE_VANG_18K": label = "Nữ Trang 610"; break;
                         case "PRICE_VANG_24K": label = "Nữ Trang 980"; break;
                         case "TALK_TO_AGENT": {
+                            // 1) gắn nhãn để agent lọc kịp thời
+                            try {
+                                const labelId = await getOrCreateLabelId("Need Agent"); // ← đổi tên theo ý bạn
+                                if (labelId) await addLabelToUser(psid, labelId);
+                            } catch (e) { console.log("Label error:", e); }
+                            // 2) gửi thẻ chờ
                             await sendHandoverCard(psid);
                             await sendTyping(psid, false);
                             const r = await passThreadToHuman(psid, "user_request_human");
@@ -153,12 +158,10 @@ exports.handler = async (event) => {
                     await sendTyping(psid, false);
                     continue;
                 }
-
                 await sendQuickPriceOptions(psid);
                 await sendTyping(psid, false);
             }
         }
-
         return { statusCode: 200, body: "" };
     }
 

@@ -118,5 +118,42 @@ async function getThreadOwner(psid) {
     return data;
 }
 
+// Lấy ID của label theo tên; nếu chưa có thì tạo mới
+async function getOrCreateLabelId(labelName) {
+    // 1) list labels
+    const listUrl = `${GRAPH_BASE}/${PAGE_ID}/custom_labels?access_token=${PAGE_ACCESS_TOKEN}`;
+    const r1 = await fetch(listUrl);
+    const j1 = await r1.json().catch(() => ({}));
+    const found = j1?.data?.find(
+        (x) => (x.page_label_name || x.name) === labelName
+    );
+    if (found?.id) return found.id;
 
-module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack, addLabelToUser, requestThreadBack, getThreadOwner };
+    // 2) create label (tham số mới: page_label_name)
+    const createUrl = `${GRAPH_BASE}/${PAGE_ID}/custom_labels?access_token=${PAGE_ACCESS_TOKEN}`;
+    const r2 = await fetch(createUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page_label_name: labelName }),
+    });
+    const j2 = await r2.json().catch(() => ({}));
+    // Meta thường trả { id, page_label_name }
+    if (j2?.id) return j2.id;
+
+    console.log("createLabel failed:", j2);
+    return null;
+}
+
+// Gắn label đã có ID vào user
+async function addLabelToUser(psid, labelId) {
+    const url = `${GRAPH_BASE}/${labelId}/label?access_token=${PAGE_ACCESS_TOKEN}`;
+    const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user: psid }),
+    });
+    console.log("labelUser:", await r.json().catch(() => ({})));
+}
+
+
+module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack, addLabelToUser, requestThreadBack, getThreadOwner, getOrCreateLabelId };
