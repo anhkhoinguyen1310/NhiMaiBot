@@ -120,7 +120,7 @@ exports.handler = async (event) => {
                         case "TALK_TO_AGENT": {
                             // 1) gắn nhãn để agent lọc kịp thời
                             try {
-                                const labelId = await getOrCreateLabelId("Need Agent"); // ← đổi tên theo ý bạn
+                                const labelId = await getOrCreateLabelId("Cứu Cứu"); // ← đổi tên theo ý bạn
                                 if (labelId) await addLabelToUser(psid, labelId);
                             } catch (e) { console.log("Label error:", e); }
                             // 2) gửi thẻ chờ
