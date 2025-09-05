@@ -42,34 +42,32 @@ exports.handler = async (event) => {
             // ===== STANDBY: khi bot KHÔNG giữ thread =====
             for (const sEv of entry.standby || []) {
                 const psid = sEv.sender?.id;
-                const rawText = sEv.message?.text ?? "";
+                const payload =
+                    sEv.postback?.payload ||
+                    sEv.message?.quick_reply?.payload ||
+                    null;
                 if (!psid) continue;
 
-                // log để chắc chắn bạn đang nhận standby
                 console.log("STANDBY RAW:", JSON.stringify(sEv));
 
-                if (!rawText) {
-                    console.log("STANDBY: no text -> skip"); // delivery/read… bỏ qua
-                    continue;
-                }
-
-                // chuẩn hoá chuỗi
-                const q = removeDiacritics(rawText).toLowerCase().replace(/\s+/g, " ").trim();
-                const reWake = /(^| )bat bot( |$)|(^| )mo bot( |$)|(^| )xem gia( |$)|(^| )bat lai bot( |$)/;
-
-                if (reWake.test(q)) {
-                    // LẤY QUYỀN TRƯỚC, chỉ gửi khi take OK
-                    const result = await takeThreadBack(psid, "user_requested_bot");
+                // Chỉ chấp nhận nút "Kết thúc chat"
+                if (payload === "RESUME_BOT") {
+                    const result = await takeThreadBack(psid, "resume_button");
                     console.log("take_thread_control:", result);
                     await logThreadOwner(psid);
 
                     if (result?.ok || result?.data?.success) {
+                        // ✅ Quay lại bot và gửi LỜI CẢM ƠN như bạn yêu cầu
                         await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
+                        // (tuỳ chọn) nếu muốn gợi ý tiếp:
+                        // await sendQuickPriceOptions(psid);
                     } else {
-                        console.log("TAKE FAILED -> không gửi message vì chưa giữ quyền.");
+                        console.log("TAKE FAILED → chưa giữ quyền, không gửi message.");
                     }
                 }
+                // Không xử lý text “bật bot/mở bot/xem giá” nữa → xoá hẳn fallback regex
             }
+
 
             // ===== MESSAGING: khi bot ĐANG giữ thread =====
             for (const ev of entry.messaging || []) {

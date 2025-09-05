@@ -43,9 +43,9 @@ async function sendQuickPriceOptions(psid) {
         recipient: { id: psid },
         messaging_type: "RESPONSE",
         message: {
-            text: "Bạn cần tiệm hỗ trợ gì ạ?",
+            text: "Bạn cần tiệm hỗ trợ gì ạ? Xin nhấn vào một trong các lựa chọn bên dưới",
             quick_replies: [
-                { content_type: "text", title: "Gặp nhân viên", payload: "TALK_TO_AGENT" },
+                { content_type: "text", title: "Vấn Đề Khác", payload: "TALK_TO_AGENT" },
                 { content_type: "text", title: "Giá Nhẫn 9999", payload: "PRICE_NHAN_9999" },
                 { content_type: "text", title: "Giá Vàng 18K", payload: "PRICE_VANG_18K" },
                 { content_type: "text", title: "Giá Vàng 24K", payload: "PRICE_VANG_24K" },
