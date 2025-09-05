@@ -156,6 +156,24 @@ async function addLabelToUser(psid, labelId) {
     });
     console.log("labelUser:", await r.json().catch(() => ({})));
 }
+// Bỏ label đã có ID khỏi user
+async function removeLabelFromUser(psid, labelId) {
+    const url = `${GRAPH_BASE}/${labelId}/label?access_token=${PAGE_ACCESS_TOKEN}&user=${psid}`;
+    const r = await fetch(url, { method: "DELETE" });
+    const data = await r.json().catch(() => ({}));
+    console.log("unlabelUser:", data, "status=", r.status);
+    return { ok: r.ok, data };
+}
+
+async function clearNeedAgentLabel(psid, name = "Cứu Cứu") { // ← đổi tên theo ý bạn
+    try {
+        // nếu bạn muốn tuyệt đối không tạo label mới khi chưa có, có thể tách 1 hàm getLabelIdOnly()
+        const id = await getOrCreateLabelId(name);
+        if (id) return removeLabelFromUser(psid, id);
+    } catch (e) { console.log("clearNeedAgentLabel error:", e); }
+    return null;
+}
 
 
-module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack, addLabelToUser, requestThreadBack, getThreadOwner, getOrCreateLabelId };
+
+module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack, addLabelToUser, requestThreadBack, getThreadOwner, getOrCreateLabelId, removeLabelFromUser, clearNeedAgentLabel };

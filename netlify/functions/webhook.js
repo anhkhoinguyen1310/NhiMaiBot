@@ -7,7 +7,7 @@ const { fetchPrice } = require("./lib/price");
 const { formatPrice, apologyText } = require("./lib/format");
 const {
     sendText, sendQuickPriceOptions, sendTyping,
-    passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner, addLabelToUser, getOrCreateLabelId
+    passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel
 } = require("./lib/messenger");
 
 async function logThreadOwner(psid) {
@@ -58,6 +58,7 @@ exports.handler = async (event) => {
                     console.log("take_thread_control:", r);
                     if (r?.ok || r?.data?.success) {
                         await new Promise(x => setTimeout(x, 200));
+                        await clearNeedAgentLabel(psid);
                         await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
                         // (tuỳ chọn) gợi ý tiếp
                         // await sendQuickPriceOptions(psid);
@@ -120,7 +121,7 @@ exports.handler = async (event) => {
                         case "TALK_TO_AGENT": {
                             // 1) gắn nhãn để agent lọc kịp thời
                             try {
-                                const labelId = await getOrCreateLabelId("Cứu Cứu"); // ← đổi tên theo ý bạn
+                                const labelId = await getOrCreateLabelId("Cứu Cứu"); //
                                 if (labelId) await addLabelToUser(psid, labelId);
                             } catch (e) { console.log("Label error:", e); }
                             // 2) gửi thẻ chờ
