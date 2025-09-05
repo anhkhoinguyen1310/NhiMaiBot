@@ -1,11 +1,11 @@
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-const { detectType, normalize } = require("./lib/intent");
+const { detectType } = require("./lib/intent");
 const { fetchPrice } = require("./lib/price");
 const { formatPrice, apologyText } = require("./lib/format");
 const {
     sendText, sendQuickPriceOptions, sendTyping,
-    passThreadToHuman, takeThreadBack, sendHandoverCard
+    passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner
 } = require("./lib/messenger");
 
 async function logThreadOwner(psid) {
@@ -38,22 +38,45 @@ exports.handler = async (event) => {
         if (body.object !== "page") return { statusCode: 404, body: "" };
         for (const entry of body.entry || []) {
             console.log("ENTRY Key:", Object.keys(entry));
-            // ===== STANDBY: khi bot KHÔNG giữ thread =====
             for (const sEv of entry.standby || []) {
                 const psid = sEv.sender?.id;
-                const rawText = sEv.message?.text ?? "";
+                const payload =
+                    sEv.postback?.payload ||
+                    sEv.message?.quick_reply?.payload ||
+                    null;
+                const text = sEv.message?.text || "";
                 if (!psid) continue;
 
-                // log để chắc chắn bạn đang nhận standby
                 console.log("STANDBY RAW:", JSON.stringify(sEv));
+                console.log("STANDBY payload:", payload, "text:", text);
 
-                if (!rawText) {
-                    console.log("STANDBY: no text -> skip"); // delivery/read… bỏ qua
+                // 1) Khách bấm "Kết thúc chat" → lấy quyền về rồi cảm ơn
+                if (payload === "RESUME_BOT") {
+                    const r = await takeThreadBack(psid, "resume_button");
+                    console.log("take_thread_control:", r);
+                    if (r?.ok || r?.data?.success) {
+                        // (nhỏ) đợi 200ms cho chắc đã trở thành owner
+                        await new Promise(x => setTimeout(x, 200));
+                        await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
+                        // (tuỳ chọn) gợi ý tiếp
+                        // await sendQuickPriceOptions(psid);
+                    }
                     continue;
                 }
 
-
+                // 2) SOFT RECLAIM: khách gửi text hỏi giá trong khi Page đang giữ
+                if (text) {
+                    const intent = detectType(text); // bạn đã có sẵn
+                    if (intent.type === "price") {
+                        // Không cướp lời ngay: xin lại quyền để agent chủ động bấm
+                        await requestThreadBack(psid, "user_asked_price_while_human");
+                        console.log("requested_thread_control (soft reclaim)");
+                        // (tuỳ chọn) bạn cũng có thể gắn label "Need Agent" ở đây nếu muốn
+                        continue;
+                    }
+                }
             }
+
 
             // ===== MESSAGING: khi bot ĐANG giữ thread =====
             for (const ev of entry.messaging || []) {

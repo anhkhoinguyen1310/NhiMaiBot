@@ -103,5 +103,20 @@ async function takeThreadBack(psid, metadata = "bot_resume") {
     });
 }
 
+async function requestThreadBack(psid, metadata = "bot_request") {
+    return callGraphPath("request_thread_control", {
+        recipient: { id: psid },
+        metadata,
+    });
+}
 
-module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack, addLabelToUser };
+async function getThreadOwner(psid) {
+    const url = `${GRAPH_BASE}/${process.env.PAGE_ID}/thread_owner?recipient=${psid}&access_token=${PAGE_ACCESS_TOKEN}`;
+    const r = await fetch(url);
+    const data = await r.json().catch(() => ({}));
+    console.log("thread_owner:", data);
+    return data;
+}
+
+
+module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack, addLabelToUser, requestThreadBack, getThreadOwner };
