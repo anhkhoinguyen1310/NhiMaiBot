@@ -64,8 +64,7 @@ exports.handler = async (event) => {
                     await logThreadOwner(psid);
 
                     if (result?.ok || result?.data?.success) {
-                        await sendText(psid, "🤖 Bot đã bật lại. Bạn muốn xem giá loại nào ạ?");
-                        await sendQuickPriceOptions(psid);
+                        await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
                     } else {
                         console.log("TAKE FAILED -> không gửi message vì chưa giữ quyền.");
                     }
