@@ -16,6 +16,7 @@ function formatDatetime(dateLike, tz = "Asia/Ho_Chi_Minh") {
 function apologyText() {
     return `🙏 Xin lỗi quý khách. Tiệm đã hết giờ làm việc. Quý khách hãy quay lại để cập nhật giá vào ngày mai ❤
             ⏰ ❤️ Mở cửa từ 7:00 - 21:00 mỗi ngày
+`
 }
 
 function formatPrice(d) {
@@ -23,12 +24,12 @@ function formatPrice(d) {
         return apologyText();
     }
     const when = formatDatetime(d.updatedAt);
-    return `✨ Giá Vàng ${ d.type } hiện tại ✨
+    return `✨ Giá Vàng ${d.type} hiện tại ✨
 
-💰 Mua: ${ d.buyVND } / chỉ
-💰 Bán: ${ d.sellVND } / chỉ
+💰 Mua: ${d.buyVND} / chỉ
+💰 Bán: ${d.sellVND} / chỉ
 
-⏰ Cập nhật: ${ when } `;
+⏰ Cập nhật: ${when} `;
 }
 
 module.exports = { formatPrice, formatDatetime, apologyText };
