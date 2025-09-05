@@ -42,32 +42,34 @@ exports.handler = async (event) => {
             // ===== STANDBY: khi bot KHÔNG giữ thread =====
             for (const sEv of entry.standby || []) {
                 const psid = sEv.sender?.id;
-                const payload =
-                    sEv.postback?.payload ||
-                    sEv.message?.quick_reply?.payload ||
-                    null;
+                const rawText = sEv.message?.text ?? "";
                 if (!psid) continue;
 
+                // log để chắc chắn bạn đang nhận standby
                 console.log("STANDBY RAW:", JSON.stringify(sEv));
 
-                // Chỉ chấp nhận nút "Kết thúc chat"
-                if (payload === "RESUME_BOT") {
-                    const result = await takeThreadBack(psid, "resume_button");
+                if (!rawText) {
+                    console.log("STANDBY: no text -> skip"); // delivery/read… bỏ qua
+                    continue;
+                }
+
+                // chuẩn hoá chuỗi
+                const q = removeDiacritics(rawText).toLowerCase().replace(/\s+/g, " ").trim();
+                const reWake = /(^| )bat bot( |$)|(^| )mo bot( |$)|(^| )xem gia( |$)|(^| )bat lai bot( |$)/;
+
+                if (reWake.test(q)) {
+                    // LẤY QUYỀN TRƯỚC, chỉ gửi khi take OK
+                    const result = await takeThreadBack(psid, "user_requested_bot");
                     console.log("take_thread_control:", result);
                     await logThreadOwner(psid);
 
                     if (result?.ok || result?.data?.success) {
-                        // ✅ Quay lại bot và gửi LỜI CẢM ƠN như bạn yêu cầu
                         await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
-                        // (tuỳ chọn) nếu muốn gợi ý tiếp:
-                        // await sendQuickPriceOptions(psid);
                     } else {
-                        console.log("TAKE FAILED → chưa giữ quyền, không gửi message.");
+                        console.log("TAKE FAILED -> không gửi message vì chưa giữ quyền.");
                     }
                 }
-                // Không xử lý text “bật bot/mở bot/xem giá” nữa → xoá hẳn fallback regex
             }
-
 
             // ===== MESSAGING: khi bot ĐANG giữ thread =====
             for (const ev of entry.messaging || []) {
@@ -78,22 +80,31 @@ exports.handler = async (event) => {
                 const payload = ev.message?.quick_reply?.payload || ev.postback?.payload || null;
                 if (payload) {
                     await sendTyping(psid, true);
-                    let label = null;
 
+                    // ✅ Nếu user bấm "Kết thúc chat" quá nhanh (trước khi pass xong),
+                    // postback sẽ rơi vào entry.messaging. Xử lý ngay tại đây:
+                    if (payload === "RESUME_BOT") {
+                        // Ở trạng thái này, bot nhiều khả năng vẫn đang giữ quyền,
+                        // nên KHÔNG cần take_thread_control. Gửi lời cảm ơn luôn.
+                        await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
+                        // (tuỳ chọn) gợi ý tiếp menu
+                        // await sendQuickPriceOptions(psid);
+                        await sendTyping(psid, false);
+                        continue;
+                    }
+
+                    let label = null;
                     switch (payload) {
                         case "PRICE_NHAN_9999": label = "Nhẫn 9999"; break;
                         case "PRICE_VANG_18K": label = "Nữ Trang 610"; break;
                         case "PRICE_VANG_24K": label = "Nữ Trang 980"; break;
                         case "TALK_TO_AGENT": {
-                            // gửi card có nút 'Kết thúc chat' trước khi pass
                             await sendHandoverCard(psid);
-                            await sendTyping(psid, false);                 // tắt trước khi pass
+                            await sendTyping(psid, false);
                             const r = await passThreadToHuman(psid, "user_request_human");
                             console.log("pass_thread_control:", r);
                             await logThreadOwner(psid);
-
-                            continue; // từ đây KHÔNG gửi gì thêm nữa
-
+                            continue;
                         }
                     }
 
