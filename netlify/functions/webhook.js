@@ -1,4 +1,6 @@
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+const APP_ID = process.env.APP_ID; // để nhận biết bot là owner mới
+
 
 const { detectType } = require("./lib/intent");
 const { fetchPrice } = require("./lib/price");
@@ -82,6 +84,21 @@ exports.handler = async (event) => {
             for (const ev of entry.messaging || []) {
                 const psid = ev.sender?.id;
                 if (!psid) continue;
+
+
+                // ✅ BẮT HANDOVER TRƯỚC
+                if (ev.take_thread_control || ev.pass_thread_control) {
+                    console.log("HANDOVER EVENT:", JSON.stringify(ev));
+                    const newOwner = ev.take_thread_control?.new_owner_app_id || ev.pass_thread_control?.new_owner_app_id;
+                    if (newOwner && String(newOwner) === String(APP_ID)) {
+                        await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
+                        // await sendQuickPriceOptions(psid);
+                        continue;
+                    }
+                    if (newOwner === 263902037430900) {
+                        console.log("Now owned by Page Inbox");
+                    }
+                }
 
                 // ---- payload trước
                 const payload = ev.message?.quick_reply?.payload || ev.postback?.payload || null;
