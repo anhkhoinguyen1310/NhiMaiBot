@@ -76,6 +76,15 @@ async function sendHandoverCard(psid) {
         }
     });
 }
+async function addLabelToUser(psid, labelId) {
+    const url = `https://graph.facebook.com/v23.0/${labelId}/label?access_token=${PAGE_ACCESS_TOKEN}`;
+    const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user: psid })
+    });
+    console.log("labelUser:", await r.json().catch(() => ({})));
+}
 
 // 🔸 Handover: chuyển quyền cho Page Inbox (người thật)
 async function passThreadToHuman(psid, metadata = "handover_to_human") {
@@ -95,4 +104,4 @@ async function takeThreadBack(psid, metadata = "bot_resume") {
 }
 
 
-module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack };
+module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack, addLabelToUser };

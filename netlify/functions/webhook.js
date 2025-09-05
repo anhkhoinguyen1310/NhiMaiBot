@@ -7,11 +7,10 @@ const {
     sendText, sendQuickPriceOptions, sendTyping,
     passThreadToHuman, takeThreadBack, sendHandoverCard
 } = require("./lib/messenger");
-const { removeDiacritics } = require("./lib/diacritics");
 
 async function logThreadOwner(psid) {
-    const PAGE_ID = process.env.PAGE_ID;                    // nhớ set env PAGE_ID
-    const ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;     // đã có sẵn
+    const PAGE_ID = process.env.PAGE_ID;
+    const ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
     if (!PAGE_ID || !ACCESS_TOKEN) {
         console.log("logThreadOwner: missing PAGE_ID or PAGE_ACCESS_TOKEN");
@@ -69,11 +68,8 @@ exports.handler = async (event) => {
                     // ✅ Nếu user bấm "Kết thúc chat" quá nhanh (trước khi pass xong),
                     // postback sẽ rơi vào entry.messaging. Xử lý ngay tại đây:
                     if (payload === "RESUME_BOT") {
-                        // Ở trạng thái này, bot nhiều khả năng vẫn đang giữ quyền,
-                        // nên KHÔNG cần take_thread_control. Gửi lời cảm ơn luôn.
+
                         await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
-                        // (tuỳ chọn) gợi ý tiếp menu
-                        // await sendQuickPriceOptions(psid);
                         await sendTyping(psid, false);
                         continue;
                     }
