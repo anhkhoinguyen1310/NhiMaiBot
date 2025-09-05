@@ -14,10 +14,10 @@ function formatDatetime(dateLike, tz = "Asia/Ho_Chi_Minh") {
 }
 
 function apologyText() {
-    return `🙏 Xin lỗi quý khách. Tiệm đã hết giờ làm việc.
-            \n❤️ Quý khách hãy quay quay lại vào ngày mai để cập nhật giá!
-            \n⏰ Mở cửa từ 7:00 - 21:00 mỗi ngày
-`
+    return "🙏 Xin lỗi quý khách. Tiệm đã hết giờ làm việc.\n" +
+        "❤️ Quý khách hãy quay quay lại vào ngày mai để cập nhật giá \n" +
+        "⏰ Mở cửa từ 7:00 - 21:00 mỗi ngày.";
+
 }
 
 function formatPrice(d) {
