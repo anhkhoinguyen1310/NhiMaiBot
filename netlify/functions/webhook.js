@@ -5,7 +5,7 @@ const { fetchPrice } = require("./lib/price");
 const { formatPrice, apologyText } = require("./lib/format");
 const {
     sendText, sendQuickPriceOptions, sendTyping,
-    passThreadToHuman, takeThreadBack
+    passThreadToHuman, takeThreadBack, sendHandoverCard
 } = require("./lib/messenger");
 const { removeDiacritics } = require("./lib/diacritics");
 
@@ -87,17 +87,13 @@ exports.handler = async (event) => {
                         case "PRICE_VANG_18K": label = "Nữ Trang 610"; break;
                         case "PRICE_VANG_24K": label = "Nữ Trang 980"; break;
                         case "TALK_TO_AGENT": {
-                            // 👇 TẮT typing TRƯỚC, rồi mới pass (tránh lỗi #10)
-                            await sendText(psid,
-                                "✳️ Quý khách vui lòng chờ trong giây lát, nhân viên sẽ hỗ trợ ngay ạ.\n" +
-                                "❗ Nếu cần gấp, xin gọi 0932 113 113.\n" +
-                                "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️"
-                            );
-                            await sendTyping(psid, false);                 // <-- tắt trước khi pass
+                            // gửi card có nút 'Kết thúc chat' trước khi pass
+                            await sendHandoverCard(psid);
+                            await sendTyping(psid, false);                 // tắt trước khi pass
                             const r = await passThreadToHuman(psid, "user_request_human");
                             console.log("pass_thread_control:", r);
                             await logThreadOwner(psid);
-                            continue;
+                            continue; // từ đây KHÔNG gửi gì thêm nữa
                         }
                     }
 

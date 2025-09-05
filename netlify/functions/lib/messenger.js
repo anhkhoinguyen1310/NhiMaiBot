@@ -54,6 +54,29 @@ async function sendQuickPriceOptions(psid) {
         },
     });
 }
+async function sendHandoverCard(psid) {
+    return callGraph({
+        recipient: { id: psid },
+        messaging_type: "RESPONSE",
+        message: {
+            attachment: {
+                type: "template",
+                payload: {
+                    template_type: "button",
+                    text:
+                        "✳️ Quý khách vui lòng chờ trong giây lát, nhân viên sẽ hỗ trợ ngay ạ.\n" +
+                        "❗ Nếu cần gấp, xin gọi 0932 113 113.\n" +
+                        "👉 Khi xong, bấm 'Kết thúc chat' để quay lại bot.",
+                    buttons: [
+                        { type: "postback", title: "Kết thúc chat", payload: "RESUME_BOT" },
+                        { type: "phone_number", title: "Gọi tiệm", payload: "+84932113113" }
+                    ]
+                }
+            }
+        }
+    });
+}
+
 // 🔸 Handover: chuyển quyền cho Page Inbox (người thật)
 async function passThreadToHuman(psid, metadata = "handover_to_human") {
     // Page Inbox app_id = 263902037430900
@@ -72,4 +95,4 @@ async function takeThreadBack(psid, metadata = "bot_resume") {
 }
 
 
-module.exports = { sendText, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack };
+module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack };
