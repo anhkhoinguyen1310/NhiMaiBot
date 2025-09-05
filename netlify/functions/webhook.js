@@ -53,22 +53,7 @@ exports.handler = async (event) => {
                     continue;
                 }
 
-                // chuẩn hoá chuỗi
-                const q = removeDiacritics(rawText).toLowerCase().replace(/\s+/g, " ").trim();
-                const reWake = /(^| )bat bot( |$)|(^| )mo bot( |$)|(^| )xem gia( |$)|(^| )bat lai bot( |$)/;
 
-                if (reWake.test(q)) {
-                    // LẤY QUYỀN TRƯỚC, chỉ gửi khi take OK
-                    const result = await takeThreadBack(psid, "user_requested_bot");
-                    console.log("take_thread_control:", result);
-                    await logThreadOwner(psid);
-
-                    if (result?.ok || result?.data?.success) {
-                        await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
-                    } else {
-                        console.log("TAKE FAILED -> không gửi message vì chưa giữ quyền.");
-                    }
-                }
             }
 
             // ===== MESSAGING: khi bot ĐANG giữ thread =====
