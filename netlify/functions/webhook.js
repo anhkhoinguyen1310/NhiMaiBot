@@ -91,8 +91,7 @@ exports.handler = async (event) => {
                     console.log("HANDOVER EVENT:", JSON.stringify(ev));
                     const newOwner = ev.take_thread_control?.new_owner_app_id || ev.pass_thread_control?.new_owner_app_id;
                     if (newOwner && String(newOwner) === String(APP_ID)) {
-                        await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
-                        // await sendQuickPriceOptions(psid);
+                        console.log("Bot has become the thread owner");
                         continue;
                     }
                     if (newOwner === 263902037430900) {
