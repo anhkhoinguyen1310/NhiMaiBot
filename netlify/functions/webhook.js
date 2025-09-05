@@ -91,6 +91,7 @@ exports.handler = async (event) => {
                     console.log("HANDOVER EVENT:", JSON.stringify(ev));
                     const newOwner = ev.take_thread_control?.new_owner_app_id || ev.pass_thread_control?.new_owner_app_id;
                     if (newOwner && String(newOwner) === String(APP_ID)) {
+                        await clearNeedAgentLabel(psid);
                         console.log("Bot has become the thread owner");
                         continue;
                     }
