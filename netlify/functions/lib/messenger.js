@@ -1,7 +1,7 @@
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const GRAPH_BASE = "https://graph.facebook.com/v18.0";
 const PAGE_ID = process.env.PAGE_ID;
-
+const { addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel } = require("./messenger");
 
 async function callGraph(body) {
     const r = await fetch(`${GRAPH_BASE}/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
@@ -41,11 +41,17 @@ async function sendTyping(psid, on = true) {
 }
 
 async function sendQuickPriceOptions(psid) {
+
+    try {
+        const labelId = await getOrCreateLabelId("Khách Nhiều Chuyện");
+        if (labelId) await addLabelToUser(psid, labelId);
+    } catch (e) { console.log("sendQuickPriceOptions Label error:", e); }
     return callGraph({
         recipient: { id: psid },
         messaging_type: "RESPONSE",
         message: {
             text: "Bạn cần tiệm hỗ trợ gì ạ? Xin nhấn vào một trong các lựa chọn bên dưới",
+
             quick_replies: [
                 { content_type: "text", title: "Vấn Đề Khác", payload: "TALK_TO_AGENT" },
                 { content_type: "text", title: "Giá Nhẫn 9999", payload: "PRICE_NHAN_9999" },
