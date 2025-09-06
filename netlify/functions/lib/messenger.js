@@ -42,10 +42,10 @@ async function sendTyping(psid, on = true) {
 
 async function sendQuickPriceOptions(psid) {
 
-    try {
-        const labelId = await getOrCreateLabelId("Khách Nhiều Chuyện");
-        if (labelId) await addLabelToUser(psid, labelId);
-    } catch (e) { console.log("sendQuickPriceOptions Label error:", e); }
+    // try {
+    //     const labelId = await getOrCreateLabelId("Khách Nhiều Chuyện");
+    //     if (labelId) await addLabelToUser(psid, labelId);
+    // } catch (e) { console.log("sendQuickPriceOptions Lab error:", e); }
     return callGraph({
         recipient: { id: psid },
         messaging_type: "RESPONSE",
