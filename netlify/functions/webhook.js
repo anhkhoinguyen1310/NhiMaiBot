@@ -157,7 +157,7 @@ exports.handler = async (event) => {
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
                 if (intent.type === "price" || ["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
-                    if (checkCooldown(psid)) {
+                    if (isRateLimited(psid)) {
                         await sendText(psid, "📢 Cảm ơn bạn đã quan tâm đến tiệm, bạn vui lòng thử lại sau 10 phút nha.");
                         await sendTyping(psid, false);
                         continue;
