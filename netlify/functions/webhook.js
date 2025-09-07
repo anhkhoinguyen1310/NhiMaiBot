@@ -10,7 +10,7 @@ const {
     passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel
 } = require("./lib/messenger");
 
-const { setCoolDown, isRateLimited } = require("./lib/rateLimiter");
+const { consumeAsk, minutesLeft } = require("./lib/rateLimiter");
 
 async function logThreadOwner(psid) {
     const PAGE_ID = process.env.PAGE_ID;
@@ -117,12 +117,13 @@ exports.handler = async (event) => {
                     }
                     //stop spamming
                     if (["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
-                        if (isRateLimited(psid)) {
-                            await sendText(psid, "📢 Cảm ơn quý khách đã quan tâm đến tiệm. Hệ Thống đang cập nhật giá. Quý khách vui lòng quay lại sau 60 phút nữa");
+                        const res = consumeAsk(psid);
+                        if (!res.allowed) {
+                            await sendText(psid, `📢 Cảm ơn quý khách đã quan tâm đến tiệm. Hệ Thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedMs)} phút nữa`);
                             await sendTyping(psid, false);
                             continue;
                         }
-                        setCoolDown(psid);
+
                     }
 
 
@@ -167,12 +168,12 @@ exports.handler = async (event) => {
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
                 if (intent.type === "price" || ["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
-                    if (isRateLimited(psid)) {
-                        await sendText(psid, "📢 Cảm ơn quý khách đã quan tâm đến tiệm. Hệ Thống đang cập nhật giá. Quý khách vui lòng quay lại sau 60 phút nữa");
+                    const res = consumeAsk(psid);
+                    if (!res.allowed) {
+                        await sendText(psid, `📢 Cảm ơn quý khách đã quan tâm đến tiệm. Hệ Thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedMs)} phút nữa`);
                         await sendTyping(psid, false);
                         continue;
                     }
-                    setCoolDown(psid);
 
                     const d = await fetchPrice(intent.label);
 
