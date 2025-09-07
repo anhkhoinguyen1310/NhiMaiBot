@@ -1,7 +1,6 @@
 const cooldownMap = new Map(); // userId -> timestamp of last request
 
-const COOLDOWN_MS = 1 * 60 * 1000; // 10 phút
-
+const COOLDOWN_MS = 15 * 2 * 60 * 1000; // 30 phút
 
 function isRateLimited(userId) {
     const now = Date.now();

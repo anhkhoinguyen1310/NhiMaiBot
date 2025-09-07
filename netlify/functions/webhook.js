@@ -118,7 +118,7 @@ exports.handler = async (event) => {
                     //stop spamming
                     if (["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
                         if (isRateLimited(psid)) {
-                            await sendText(psid, "📢 Cảm ơn bạn đã quan tâm đến tiệm, bạn vui lòng thử lại sau 10 phút nha.");
+                            await sendText(psid, "📢 Cảm ơn quý khách đã quan tâm đến tiệm. Hệ Thống đang cập nhật giá. Quý khách vui lòng quay lại sau 60 phút nữa");
                             await sendTyping(psid, false);
                             continue;
                         }
@@ -168,7 +168,7 @@ exports.handler = async (event) => {
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
                 if (intent.type === "price" || ["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
                     if (isRateLimited(psid)) {
-                        await sendText(psid, "📢 Cảm ơn bạn đã quan tâm đến tiệm, bạn vui lòng thử lại sau 10 phút nha.");
+                        await sendText(psid, "📢 Cảm ơn quý khách đã quan tâm đến tiệm. Hệ Thống đang cập nhật giá. Quý khách vui lòng quay lại sau 60 phút nữa");
                         await sendTyping(psid, false);
                         continue;
                     }
