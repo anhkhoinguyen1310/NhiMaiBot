@@ -10,6 +10,8 @@ const {
     passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel
 } = require("./lib/messenger");
 
+const { setCoolDown, isRateLimited } = require("./lib/rateLimiter");
+
 async function logThreadOwner(psid) {
     const PAGE_ID = process.env.PAGE_ID;
     const ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
@@ -154,8 +156,16 @@ exports.handler = async (event) => {
 
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
-                if (intent.type === "price") {
+                if (intent.type === "price" || ["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
+                    if (checkCooldown(psid)) {
+                        await sendText(psid, "📢 Cảm ơn bạn đã quan tâm đến tiệm, bạn vui lòng thử lại sau 10 phút nha.");
+                        await sendTyping(psid, false);
+                        continue;
+                    }
+                    setCoolDown(psid);
+
                     const d = await fetchPrice(intent.label);
+
                     await sendText(psid, (!d || !d.buyVND || !d.sellVND) ? apologyText() : formatPrice(d));
                     await sendTyping(psid, false);
                     continue;
