@@ -119,8 +119,10 @@ exports.handler = async (event) => {
                     if (["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
                         const res = consumeAsk(psid);
                         if (!res.allowed) {
-                            await sendText(psid, `📢 Cảm ơn quý khách đã quan tâm đến tiệm. Hệ Thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedMs)} phút nữa`);
+                            await sendText(psid, `📢 Hệ Thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedMs)} phút nữa. Xin cám ơn quý khách.`);
+
                             await sendTyping(psid, false);
+
                             continue;
                         }
 
@@ -170,7 +172,7 @@ exports.handler = async (event) => {
                 if (intent.type === "price" || ["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
                     const res = consumeAsk(psid);
                     if (!res.allowed) {
-                        await sendText(psid, `📢 Cảm ơn quý khách đã quan tâm đến tiệm. Hệ Thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedMs)} phút nữa`);
+                        await sendText(psid, `📢 Hệ Thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedMs)} phút nữa. Xin cám ơn quý khách.`);
                         await sendTyping(psid, false);
                         continue;
                     }
