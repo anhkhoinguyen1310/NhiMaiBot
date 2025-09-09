@@ -2,8 +2,8 @@
 const store = new Map();
 // key = psid -> { count: number, nextAllowedAt: number, lastAt: number }
 
-const ALLOWED = 2;                      // 2 lần
-const COOLdown_MS = 30 * 2 * 60 * 1000;     // 30 phút
+const ALLOWED = 3;                      // 2 lần
+const COOLdown_MS = 30 * 2 * 60 * 1000;
 
 function _now() { return Date.now(); }
 
