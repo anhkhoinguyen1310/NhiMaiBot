@@ -171,16 +171,16 @@ exports.handler = async (event) => {
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
                 if (intent.type === "price" || ["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
                     const res = consumeAsk(psid);
+                    const d = await fetchPrice(intent.label);
+                    await sendText(psid, (!d || !d.buyVND || !d.sellVND) ? apologyText() : formatPrice(d));
+                    await sendTyping(psid, false);
                     if (!res.allowed) {
                         await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedMs)} phút nữa. Xin cám ơn quý khách.`);
                         await sendTyping(psid, false);
                         continue;
                     }
 
-                    const d = await fetchPrice(intent.label);
 
-                    await sendText(psid, (!d || !d.buyVND || !d.sellVND) ? apologyText() : formatPrice(d));
-                    await sendTyping(psid, false);
                     continue;
                 }
                 await sendQuickPriceOptions(psid);
