@@ -35,11 +35,18 @@ async function consumeAsk(psid) {
     // 2) increment count atomically
     const rec = await counts.findOneAndUpdate(
         { psid },
-        { $inc: { count: 1 }, $set: { updatedAt: now }, $setOnInsert: { count: 0 } },
+        [
+            {
+                $set: {
+                    count: { $add: [{ $ifNull: ["$count", 0] }, 1] },
+                    updatedAt: now
+                }
+            }
+        ],
         { upsert: true, returnDocument: "after" }
     );
-
     const count = rec.value?.count ?? 1;
+    console.log("consumeAsk:", psid, "count=", count);
 
     // 3) over the limit → create block & reset count
     if (count > ALLOWED) {
