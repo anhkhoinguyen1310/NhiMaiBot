@@ -3,7 +3,7 @@ const getDb = require("./mongo");
 
 const ALLOWED = 2;               // you set 2
 const BLOCK_SEC = 60 * 60;
-const COUNT_TTL_SEC = 7 * 24 * 60 * 60;
+const COUNT_TTL_SEC = 2 * 60 * 60; // keep count for 2 hours
 
 function minutesLeft(sec) { return Math.ceil(sec / 60); }
 
