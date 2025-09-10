@@ -1,35 +1,43 @@
-// npm i @upstash/redis
-const { Redis } = require("@upstash/redis");
+// askLimiter.js
+const store = new Map();
+// key = psid -> { count: number, nextAllowedAt: number, lastAt: number }
 
-const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+const ALLOWED = 2;                      // 2 lần
+const COOLdown_MS = 30 * 2 * 60 * 1000;
 
-const ALLOWED = 2;               // cho hỏi 3 lần
-const BLOCK_SEC = 3 * 60;       // khóa 30 phút
-const COUNT_TTL_SEC = 24 * 60 * 60; // giữ đếm tối đa 24h (tuỳ bạn)
+function _now() { return Date.now(); }
 
-function minutesLeft(sec) { return Math.ceil(sec / 60); }
+function consumeAsk(psid) {
+    const now = _now();
+    const rec = store.get(psid) || { count: 0, nextAllowedAt: 0, lastAt: 0 };
 
-async function consumeAsk(psid) {
-    const blockKey = `ask:block:${psid}`;
-    const countKey = `ask:count:${psid}`;
-
-    // đang bị khóa?
-    const ttl = await redis.ttl(blockKey); // -2: không tồn tại, -1: có nhưng không TTL
-    if (ttl > 0) return { allowed: false, blockedSec: ttl, remaining: 0 };
-
-    // tăng đếm
-    const count = await redis.incr(countKey);
-    if (count === 1) await redis.expire(countKey, COUNT_TTL_SEC);
-
-    if (count > ALLOWED) {
-        await redis.set(blockKey, 1, { ex: BLOCK_SEC });
-        await redis.del(countKey); // reset quota sau khi hết khóa
-        return { allowed: false, blockedSec: BLOCK_SEC, remaining: 0 };
+    // đang bị chặn?
+    if (now < rec.nextAllowedAt) {
+        return { allowed: false, blockedMs: rec.nextAllowedAt - now, remaining: 0 };
     }
-    return { allowed: true, remaining: ALLOWED - count, blockedSec: 0 };
+
+    if (rec.lastAt && now - rec.lastAt > COOLdown_MS) rec.count = 0;
+
+    // đã hết 3 lần? → chặn 30'
+    if (rec.count >= ALLOWED) {
+        rec.count = 0; // reset để sau cooldown có lại 3 lần mới
+        rec.nextAllowedAt = now + COOLdown_MS;
+        rec.lastAt = now;
+        store.set(psid, rec);
+        return { allowed: false, blockedMs: COOLdown_MS, remaining: 0 };
+    }
+
+    // cho phép lần này
+    rec.count += 1;
+    rec.lastAt = now;
+    rec.nextAllowedAt = 0;
+    store.set(psid, rec);
+
+    return { allowed: true, remaining: ALLOWED - rec.count, blockedMs: 0 };
+}
+
+function minutesLeft(ms) {
+    return Math.ceil(ms / 60000);
 }
 
 module.exports = { consumeAsk, minutesLeft };
