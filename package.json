@@ -4,5 +4,8 @@
     "version": "1.0.0",
     "engines": {
         "node": ">=18"
+    },
+    "dependencies": {
+        "@upstash/redis": "^1.35.3"
     }
 }
