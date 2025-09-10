@@ -1,2 +1,7 @@
-[build]
-  functions = "netlify/functions"
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["mongodb"]   # ensure the driver is packaged
+  included_files = ["netlify/functions/**", "lib/**"]
+
+[build.environment]
+  NODE_VERSION = "20"    # or 18, but 20 is fine with mongodb v6

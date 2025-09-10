@@ -6,6 +6,7 @@
         "node": ">=18"
     },
     "dependencies": {
-        "@upstash/redis": "^1.35.3"
+        "@upstash/redis": "^1.35.3",
+        "mongodb": "^6.19.0"
     }
 }
