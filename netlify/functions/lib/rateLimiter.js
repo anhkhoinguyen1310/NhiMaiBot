@@ -1,20 +1,22 @@
-// lib/askLimiterAtlas.js
+// lib/rateLimiter.js (Atlas)
 const getDb = require("./mongo");
 
-const ALLOWED = 2;             // allow 2 asks
-const BLOCK_SEC = 30 * 60;     // block 30 minutes
-const COUNT_TTL_SEC = 7 * 24 * 60 * 60; // auto-clean counts after 7 days
+const ALLOWED = 2;               // you set 2
+const BLOCK_SEC = 30 * 60;
+const COUNT_TTL_SEC = 7 * 24 * 60 * 60;
 
 function minutesLeft(sec) { return Math.ceil(sec / 60); }
 
+let indexesReady = false;
 async function ensureIndexes(db) {
+    if (indexesReady) return;
     const counts = db.collection("ask_counts");
     const blocks = db.collection("ask_blocks");
     await counts.createIndex({ psid: 1 }, { unique: true });
     await counts.createIndex({ updatedAt: 1 }, { expireAfterSeconds: COUNT_TTL_SEC });
     await blocks.createIndex({ psid: 1 }, { unique: true });
-    // TTL by 'until' – document disappears when time passes (TTL check runs ~every 60s)
     await blocks.createIndex({ until: 1 }, { expireAfterSeconds: 0 });
+    indexesReady = true;
 }
 
 async function consumeAsk(psid) {
@@ -25,38 +27,36 @@ async function consumeAsk(psid) {
     const blocks = db.collection("ask_blocks");
     const now = new Date();
 
-    // 1) is blocked?
+    // 1) already blocked?
     const blk = await blocks.findOne({ psid });
     if (blk && blk.until > now) {
         const blockedSec = Math.max(1, Math.ceil((blk.until - now) / 1000));
         return { allowed: false, blockedSec, remaining: 0 };
     }
 
-    // 2) increment count atomically
-    const rec = await counts.findOneAndUpdate(
+    // 2) atomic increment
+    const r = await counts.findOneAndUpdate(
         { psid },
-        [
-            {
-                $set: {
-                    count: { $add: [{ $ifNull: ["$count", 0] }, 1] },
-                    updatedAt: now
-                }
-            }
-        ],
+        { $inc: { count: 1 }, $set: { updatedAt: now } },  // <- $inc only
         { upsert: true, returnDocument: "after" }
     );
-    const count = rec.value?.count ?? 1;
-    console.log("consumeAsk:", psid, "count=", count);
 
-    // 3) over the limit → create block & reset count
+    // Some server/driver combos can return value=null on upsert/race → re-read
+    let count = r.value?.count;
+    if (typeof count !== "number") {
+        const doc = await counts.findOne({ psid }, { projection: { count: 1 } });
+        count = doc?.count ?? 0;
+    }
+
+    // 3) over limit → create a block + reset counter
     if (count > ALLOWED) {
-        const until = new Date(Date.now() + BLOCK_SEC * 1000);
+        const until = new Date(now.getTime() + BLOCK_SEC * 1000);
         await blocks.updateOne({ psid }, { $set: { psid, until } }, { upsert: true });
         await counts.updateOne({ psid }, { $set: { count: 0, updatedAt: now } });
         return { allowed: false, blockedSec: BLOCK_SEC, remaining: 0 };
     }
 
-    return { allowed: true, remaining: ALLOWED - count, blockedSec: 0 };
+    return { allowed: true, remaining: Math.max(0, ALLOWED - count), blockedSec: 0 };
 }
 
 module.exports = { consumeAsk, minutesLeft };
