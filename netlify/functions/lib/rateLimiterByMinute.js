@@ -47,10 +47,9 @@ async function consumeAsk1hByMinutes(psid) {
     const events = db.collection("ask_events");
     const blocks = db.collection("ask_blocks");
 
-    // luôn ghi lại một event để thống kê cửa sổ 1h
+    // luôn ghi event để cửa sổ 1h chính xác (TTL 1h sẽ tự xoá)
     await events.insertOne({ psid, at: now });
 
-    // đếm số lần trong 60' gần nhất (chỉ để báo cáo/tham khảo)
     const since = new Date(now.getTime() - WINDOW_SEC * 1000);
     const hitsLastHour = await events.countDocuments({ psid, at: { $gt: since } });
 
@@ -59,19 +58,34 @@ async function consumeAsk1hByMinutes(psid) {
     const currentlyBlocked = Boolean(blk && blk.until > now);
 
     if (currentlyBlocked) {
-        // ❗ YÊU CẦU MỚI: cộng thêm 15' vào THỜI GIAN CÒN LẠI
-        const finalUntil = new Date(blk.until.getTime() + EXTRA_BLOCK_PER_HIT_MIN * 60 * 1000);
-        await blocks.updateOne({ psid }, { $set: { psid, until: finalUntil } }, { upsert: true });
+        // >>> CỘNG VÀO "THỜI GIAN CÒN LẠI" <<<
+        const remainingSecBefore =
+            Math.max(0, Math.ceil((blk.until.getTime() - now.getTime()) / 1000));
+        const bumpedSec = remainingSecBefore + EXTRA_BLOCK_PER_HIT_MIN * 60;
+
+        const finalUntil = new Date(now.getTime() + bumpedSec * 1000);
+        await blocks.updateOne(
+            { psid },
+            { $set: { psid, until: finalUntil } },
+            { upsert: true }
+        );
+
+        console.log("bump-block", {
+            psid,
+            remainingBeforeMin: Math.ceil(remainingSecBefore / 60),
+            afterMin: Math.ceil(bumpedSec / 60),
+            hits: hitsLastHour,
+        });
 
         return {
             allowed: false,
-            blockedSec: Math.ceil((finalUntil - now) / 1000),
+            blockedSec: bumpedSec,
             remaining: 0,
             hits: hitsLastHour,
         };
     }
 
-    // chưa bị block: lần thứ 3 trong 1h → block 60'
+    // chưa bị block: lần thứ 3 trong 1h → chặn 60'
     if (hitsLastHour > BASE_ALLOW) {
         const until = new Date(now.getTime() + BASE_BLOCK_MIN * 60 * 1000);
         await blocks.updateOne({ psid }, { $set: { psid, until } }, { upsert: true });
@@ -92,4 +106,5 @@ async function consumeAsk1hByMinutes(psid) {
         hits: hitsLastHour,
     };
 }
+
 module.exports = { consumeAsk1hByMinutes, minutesLeft };
