@@ -118,6 +118,7 @@ exports.handler = async (event) => {
                     }
                     //stop spamming
                     if (["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
+                        await sendText(psid, "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá 1 lần 1 tiếng.\n ❤️Tiệm cảm ơn quý khách❤️");
                         const res = await consumeAsk1hByMinutes(psid);
                         console.log("limiter(1h atlas):", { psid, res });
                         if (!res.allowed) {
