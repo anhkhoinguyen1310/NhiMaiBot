@@ -56,29 +56,63 @@ async function consumeAsk1h(psid) {
     const events = db.collection("ask_events");
     const blocks = db.collection("ask_blocks");
 
-    // 1) Đang bị block?
-    const blk = await blocks.findOne({ psid });
-    if (blk && blk.until > now) {
-        const blockedSec = Math.max(1, Math.ceil((blk.until - now) / 1000));
-        return { allowed: false, blockedSec, remaining: 0, hits: null };
-    }
-
-    // 2) Đếm số lần hỏi trong 60' qua
+    // Đếm trong cửa sổ 60'
     const since = new Date(now.getTime() - WINDOW_SEC * 1000);
     const countBefore = await events.countDocuments({ psid, at: { $gt: since } });
+    const hitsAfter = countBefore + 1;
 
-    if (countBefore >= BASE_ALLOW) {
-        const extra = countBefore - BASE_ALLOW; // 2→0, 3→1, 4→2...
-        const blockMin = BASE_BLOCK_MIN + EXTRA_BLOCK_PER_HIT_MIN * extra;
-        const until = new Date(now.getTime() + blockMin * 60 * 1000);
-        await blocks.updateOne({ psid }, { $set: { psid, until } }, { upsert: true });
-        return { allowed: false, blockedSec: blockMin * 60, remaining: 0, hits: countBefore };
+    // Luôn ghi lại lần hỏi (kể cả đang block) để escalations hoạt động
+    await events.insertOne({ psid, at: now });
+
+    // (A) Tính thời gian block cần có cho tổng số lần hitsAfter
+    //     3rd -> 60, 4th -> 75, 5th -> 90 ...
+    let blockMinCandidate = 0;
+    if (hitsAfter > BASE_ALLOW) {
+        blockMinCandidate = BASE_BLOCK_MIN + EXTRA_BLOCK_PER_HIT_MIN * Math.max(0, (hitsAfter - BASE_ALLOW - 1));
     }
 
-    // 3) Cho phép: ghi event (auto-expire sau 1 giờ nhờ TTL)
-    await events.insertOne({ psid, at: now });
-    const hits = countBefore + 1;
-    return { allowed: true, remaining: Math.max(0, BASE_ALLOW - hits), blockedSec: 0, hits };
+    // (B) Xem hiện đang bị block không
+    const blk = await blocks.findOne({ psid });
+    const currentlyBlocked = Boolean(blk && blk.until > now);
+
+    // (C) Nếu chưa tới ngưỡng và cũng không bị block => CHO PHÉP
+    if (!currentlyBlocked && hitsAfter <= BASE_ALLOW) {
+        return {
+            allowed: true,
+            remaining: Math.max(0, BASE_ALLOW - hitsAfter),
+            blockedSec: 0,
+            hits: hitsAfter
+        };
+    }
+
+    // (D) Nếu cần block (vì vượt ngưỡng) HOẶC đang block sẵn:
+    //     tính mốc until mới = max(until hiện tại, now + blockMinCandidate)
+    let finalUntil = (currentlyBlocked ? blk.until : now);
+    if (blockMinCandidate > 0) {
+        const newUntil = new Date(now.getTime() + blockMinCandidate * 60 * 1000);
+        if (newUntil > finalUntil) finalUntil = newUntil; // gia hạn nếu lâu hơn
+    }
+
+    // Nếu vẫn chưa vượt ngưỡng mà đang block do lần trước, chỉ cần giữ nguyên until
+    if (finalUntil <= now && blockMinCandidate === 0 && currentlyBlocked) {
+        finalUntil = blk.until; // safety, nhưng thực tế nhánh này hiếm khi xảy ra
+    }
+
+    // Ghi/giữ block
+    if (finalUntil > now) {
+        await blocks.updateOne({ psid }, { $set: { psid, until: finalUntil } }, { upsert: true });
+        const blockedSec = Math.max(1, Math.ceil((finalUntil - now) / 1000));
+        return { allowed: false, blockedSec, remaining: 0, hits: hitsAfter };
+    }
+
+    // Trường hợp còn lại (không block)
+    return {
+        allowed: true,
+        remaining: Math.max(0, BASE_ALLOW - hitsAfter),
+        blockedSec: 0,
+        hits: hitsAfter
+    };
 }
+
 
 module.exports = { consumeAsk1h, minutesLeft };
