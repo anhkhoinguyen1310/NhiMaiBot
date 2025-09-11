@@ -1,62 +1,84 @@
-// lib/rateLimiter.js (Atlas)
+// Cửa sổ 1 giờ, cho hỏi 2 lần. Lần 3 chặn 60', mỗi lần vượt thêm +15'.
 const getDb = require("./mongo");
 
-const ALLOWED = 2;               // you set 2
-const BLOCK_SEC = 60 * 60;
-const COUNT_TTL_SEC = 1 * 60 * 60; // keep count for 1 hour
+const WINDOW_SEC = 60 * 60;  // cửa sổ 1 giờ
+const BASE_ALLOW = 2;        // cho phép 2 lần trong 1 giờ
+const BASE_BLOCK_MIN = 60;   // lần thứ 3 → chặn 60 phút
+const EXTRA_BLOCK_PER_HIT_MIN = 15; // mỗi lần vượt thêm +15 phút
 
 function minutesLeft(sec) { return Math.ceil(sec / 60); }
 
 let indexesReady = false;
 async function ensureIndexes(db) {
     if (indexesReady) return;
-    const counts = db.collection("ask_counts");
+    const events = db.collection("ask_events");
     const blocks = db.collection("ask_blocks");
-    await counts.createIndex({ psid: 1 }, { unique: true });
-    await counts.createIndex({ updatedAt: 1 }, { expireAfterSeconds: COUNT_TTL_SEC });
-    await blocks.createIndex({ psid: 1 }, { unique: true });
-    await blocks.createIndex({ until: 1 }, { expireAfterSeconds: 0 });
+
+    // ask_events: TTL 1 giờ trên field 'at' (mỗi lần hỏi là 1 event auto-expire sau 60')
+    const eIdx = await events.indexes();
+    if (!eIdx.find(i => i.name === "psid_at_1")) {
+        await events.createIndex({ psid: 1, at: 1 }, { name: "psid_at_1" });
+    }
+    const ttlIdx = eIdx.find(i => i.name === "at_ttl_1h");
+    if (!ttlIdx) {
+        await events.createIndex({ at: 1 }, { name: "at_ttl_1h", expireAfterSeconds: WINDOW_SEC });
+    } else if (ttlIdx.expireAfterSeconds !== WINDOW_SEC) {
+        // Nếu cần đổi TTL (ít gặp), fallback: drop & recreate (tránh cần collMod)
+        await events.dropIndex("at_ttl_1h");
+        await events.createIndex({ at: 1 }, { name: "at_ttl_1h", expireAfterSeconds: WINDOW_SEC });
+    }
+
+    // ask_blocks: block đang hiệu lực
+    const bIdx = await blocks.indexes();
+    if (!bIdx.find(i => i.name === "psid_1")) {
+        await blocks.createIndex({ psid: 1 }, { name: "psid_1", unique: true });
+    }
+    if (!bIdx.find(i => i.name === "until_1")) {
+        await blocks.createIndex({ until: 1 }, { name: "until_1", expireAfterSeconds: 0 });
+    }
+
     indexesReady = true;
 }
 
-async function consumeAsk(psid) {
+/**
+ * Logic:
+ * 1) Nếu đang bị block (ask_blocks.until > now) → từ chối.
+ * 2) Đếm số event trong 1 giờ gần nhất (countBefore).
+ *    - Nếu countBefore >= 2 → block ngay:
+ *        blockMin = 60 + 15 * (countBefore - 2)  // 3rd→60, 4th→75, 5th→90...
+ *    - Ngược lại (0 hoặc 1) → cho phép và ghi 1 event {psid, at: now}.
+ */
+async function consumeAsk1h(psid) {
     const db = await getDb();
     await ensureIndexes(db);
 
-    const counts = db.collection("ask_counts");
-    const blocks = db.collection("ask_blocks");
     const now = new Date();
+    const events = db.collection("ask_events");
+    const blocks = db.collection("ask_blocks");
 
-    // 1) already blocked?
+    // 1) Đang bị block?
     const blk = await blocks.findOne({ psid });
     if (blk && blk.until > now) {
         const blockedSec = Math.max(1, Math.ceil((blk.until - now) / 1000));
-        return { allowed: false, blockedSec, remaining: 0 };
+        return { allowed: false, blockedSec, remaining: 0, hits: null };
     }
 
-    // 2) atomic increment
-    const r = await counts.findOneAndUpdate(
-        { psid },
-        { $inc: { count: 1 }, $set: { updatedAt: now } },  // <- $inc only
-        { upsert: true, returnDocument: "after" }
-    );
+    // 2) Đếm số lần hỏi trong 60' qua
+    const since = new Date(now.getTime() - WINDOW_SEC * 1000);
+    const countBefore = await events.countDocuments({ psid, at: { $gt: since } });
 
-    // Some server/driver combos can return value=null on upsert/race → re-read
-    let count = r.value?.count;
-    if (typeof count !== "number") {
-        const doc = await counts.findOne({ psid }, { projection: { count: 1 } });
-        count = doc?.count ?? 0;
-    }
-
-    // 3) over limit → create a block + reset counter
-    if (count > ALLOWED) {
-        const until = new Date(now.getTime() + BLOCK_SEC * 1000);
+    if (countBefore >= BASE_ALLOW) {
+        const extra = countBefore - BASE_ALLOW; // 2→0, 3→1, 4→2...
+        const blockMin = BASE_BLOCK_MIN + EXTRA_BLOCK_PER_HIT_MIN * extra;
+        const until = new Date(now.getTime() + blockMin * 60 * 1000);
         await blocks.updateOne({ psid }, { $set: { psid, until } }, { upsert: true });
-        await counts.updateOne({ psid }, { $set: { count: 0, updatedAt: now } });
-        return { allowed: false, blockedSec: BLOCK_SEC, remaining: 0 };
+        return { allowed: false, blockedSec: blockMin * 60, remaining: 0, hits: countBefore };
     }
 
-    return { allowed: true, remaining: Math.max(0, ALLOWED - count), blockedSec: 0 };
+    // 3) Cho phép: ghi event (auto-expire sau 1 giờ nhờ TTL)
+    await events.insertOne({ psid, at: now });
+    const hits = countBefore + 1;
+    return { allowed: true, remaining: Math.max(0, BASE_ALLOW - hits), blockedSec: 0, hits };
 }
 
-module.exports = { consumeAsk, minutesLeft };
+module.exports = { consumeAsk1h, minutesLeft };
