@@ -10,7 +10,8 @@ const {
     passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel
 } = require("./lib/messenger");
 
-const { consumeAsk1h, minutesLeft } = require("./lib/rateLimiter");
+//const { consumeAsk1h, minutesLeft } = require("./lib/rateLimiter");
+const { consumeAsk1hByMinutes, minutesLeft } = require("./lib/rateLimiterByMinute");
 
 async function logThreadOwner(psid) {
     const PAGE_ID = process.env.PAGE_ID;
@@ -117,7 +118,7 @@ exports.handler = async (event) => {
                     }
                     //stop spamming
                     if (["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
-                        const res = await consumeAsk1h(psid);
+                        const res = await consumeAsk1hByMinutes(psid);
                         console.log("limiter(1h atlas):", { psid, res });
                         if (!res.allowed) {
                             await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
@@ -171,7 +172,7 @@ exports.handler = async (event) => {
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
                 if (intent.type === "price" || ["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
-                    const res = await consumeAsk1h(psid);
+                    const res = await consumeAsk1hByMinutes(psid);
                     console.log("limiter(1h atlas):", { psid, res });
                     if (!res.allowed) {
                         await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
