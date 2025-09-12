@@ -1,6 +1,7 @@
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const APP_ID = process.env.APP_ID; // để nhận biết bot là owner mới
 const PAGE_ID = process.env.PAGE_ID;
+const ADMIN_KEYS = new Set(["nhimaimaidinh"]);
 
 const { detectType } = require("./lib/intent");
 const { fetchPrice } = require("./lib/price");
@@ -10,9 +11,17 @@ const {
     passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel,
     sendPriceWithNote
 } = require("./lib/messenger");
+const { countUniquePsidToday } = require("./lib/stats");
 
 //const { consumeAsk1h, minutesLeft } = require("./lib/rateLimiter");
 const { consumeAsk1hByMinutes, minutesLeft } = require("./lib/rateLimiterByMinute");
+
+
+function isAdminKey(s = "") {
+    const x = s.toString().trim().toLowerCase()
+        .normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    return ADMIN_KEYS.has(x);
+}
 
 async function logThreadOwner(psid) {
     const PAGE_ID = process.env.PAGE_ID;
@@ -170,6 +179,14 @@ exports.handler = async (event) => {
                 if (!text) continue;
 
                 await sendTyping(psid, true);
+
+
+                if (isAdminKey(text)) {
+                    const num = await countUniquePsidToday();
+                    await sendText(psid, `📊 Số lượng khách nhắn tin trong hôm nay: ${num}`);
+                    await sendTyping(psid, false);
+                    continue;
+                }
                 const intent = detectType(text);
 
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
@@ -195,6 +212,7 @@ exports.handler = async (event) => {
                 await sendTyping(psid, false);
             }
         }
+
         return { statusCode: 200, body: "" };
     }
 
