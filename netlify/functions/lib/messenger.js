@@ -88,13 +88,15 @@ async function sendPriceWithNote(psid, label) {
         return false; // không có giá → không gửi "Lưu ý"
     }
     // 1) gửi giá
-    await sendText(psid, formatPrice(d));
-    // 2) chỉ khi có giá mới gửi note
     await sendText(
         psid,
         "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá 1 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
     );
+
+    await sendText(psid, formatPrice(d));
+    // 2) chỉ khi có giá mới gửi note
     return true;
+
 }
 
 
