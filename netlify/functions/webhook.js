@@ -4,16 +4,12 @@ const PAGE_ID = process.env.PAGE_ID;
 const ADMIN_KEYS = new Set(["nhimaimaidinh"]);
 
 const { detectType } = require("./lib/intent");
-const { fetchPrice } = require("./lib/price");
-const { formatPrice, apologyText } = require("./lib/format");
 const {
     sendText, sendQuickPriceOptions, sendTyping,
-    passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel,
+    passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel,
     sendPriceWithNote
 } = require("./lib/messenger");
 const { countUniquePsidToday } = require("./lib/stats");
-
-//const { consumeAsk1h, minutesLeft } = require("./lib/rateLimiter");
 const { consumeAsk1hByMinutes, minutesLeft } = require("./lib/rateLimiterByMinute");
 
 
@@ -186,7 +182,6 @@ exports.handler = async (event) => {
                     await sendTyping(psid, false);
                     continue;
                 }
-
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
                 if (intent.type === "price") {

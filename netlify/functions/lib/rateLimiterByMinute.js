@@ -2,7 +2,7 @@
 const getDb = require("./mongo");
 
 const WINDOW_SEC = 60 * 60;  // cửa sổ 1 giờ
-const BASE_ALLOW = 100;        // cho phép 2 lần trong 1 giờ
+const BASE_ALLOW = 2;        // cho phép 2 lần trong 1 giờ
 const BASE_BLOCK_MIN = 60;   // lần thứ 3 → chặn 60 phút
 const EXTRA_BLOCK_PER_HIT_MIN = 15; // mỗi lần vượt thêm +15 phút
 const { recordDailyUser } = require("./stats");
@@ -37,7 +37,6 @@ async function ensureIndexes(db) {
     if (!bIdx.find(i => i.name === "until_1")) {
         await blocks.createIndex({ until: 1 }, { name: "until_1", expireAfterSeconds: 0 });
     }
-
     indexesReady = true;
 }
 async function consumeAsk1hByMinutes(psid) {
