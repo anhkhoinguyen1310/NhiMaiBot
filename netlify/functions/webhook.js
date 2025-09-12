@@ -128,7 +128,6 @@ exports.handler = async (event) => {
                     }
                     //stop spamming
                     if (["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
-                        await sendText(psid, "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá 1 lần 1 tiếng.\n ❤️Tiệm cảm ơn quý khách❤️");
                         await sendTyping(psid, true);
                         const res = await consumeAsk1hByMinutes(psid);
                         console.log("limiter(1h atlas):", { psid, res });
@@ -143,7 +142,7 @@ exports.handler = async (event) => {
                     }
 
 
-                    let label = null;
+                    var label = null;
                     switch (payload) {
                         case "PRICE_NHAN_9999": label = "Nhẫn 9999"; break;
                         case "PRICE_VANG_18K": label = "Nữ Trang 610"; break;
@@ -164,12 +163,12 @@ exports.handler = async (event) => {
                         }
                     }
 
-                    if (label) {
-                        const d = await fetchPrice(label);
-                        await sendText(psid, (!d || !d.buyVND || !d.sellVND) ? apologyText() : formatPrice(d));
-                    } else {
-                        await sendQuickPriceOptions(psid);
-                    }
+                    var label =
+                        payload === "PRICE_NHAN_9999" ? "Nhẫn 9999" :
+                            payload === "PRICE_VANG_18K" ? "Nữ Trang 610" :
+                                "Nữ Trang 980";
+
+                    await sendPriceWithNote(psid, label); // ← chỉ gửi note khi có giá
                     await sendTyping(psid, false);
                     continue;
                 }
@@ -190,9 +189,9 @@ exports.handler = async (event) => {
 
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
-                if (intent.type === "price" || ["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
-                    await sendText(psid, "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá 1 lần 1 tiếng.\n ❤️Tiệm cảm ơn quý khách❤️");
+                if (intent.type === "price") {
                     await sendTyping(psid, true);
+
                     const res = await consumeAsk1hByMinutes(psid);
                     console.log("limiter(1h atlas):", { psid, res });
                     if (!res.allowed) {
@@ -201,12 +200,11 @@ exports.handler = async (event) => {
                         continue;
                     }
 
-                    const d = await fetchPrice(intent.label);
-
-                    await sendText(psid, (!d || !d.buyVND || !d.sellVND) ? apologyText() : formatPrice(d));
+                    await sendPriceWithNote(psid, intent.label); // ← chỉ gửi note khi có giá
                     await sendTyping(psid, false);
                     continue;
                 }
+                // không hiểu → gợi ý
                 await sendQuickPriceOptions(psid);
                 await sendTyping(psid, false);
             }

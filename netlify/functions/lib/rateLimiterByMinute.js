@@ -5,7 +5,6 @@ const WINDOW_SEC = 60 * 60;  // cửa sổ 1 giờ
 const BASE_ALLOW = 1;        // cho phép 2 lần trong 1 giờ
 const BASE_BLOCK_MIN = 60;   // lần thứ 3 → chặn 60 phút
 const EXTRA_BLOCK_PER_HIT_MIN = 15; // mỗi lần vượt thêm +15 phút
-
 function minutesLeft(sec) { return Math.ceil(sec / 60); }
 
 let indexesReady = false;
