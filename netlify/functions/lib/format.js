@@ -7,6 +7,7 @@ function formatDatetime(dateLike, tz = "Asia/Ho_Chi_Minh") {
             minute: "2-digit",
             day: "2-digit",
             month: "2-digit",
+            year: "2-digit",
         }).format(new Date(dateLike));
     } catch {
         return "";
@@ -24,7 +25,8 @@ function formatPrice(d) {
         return apologyText();
     }
     const when = formatDatetime(d.updatedAt);
-    return `✨ Giá Vàng ${d.type} hiện tại ✨
+    return `🌼TIỆM VÀNG NHỊ MAI🌼
+    ✨ Giá Vàng ${d.type} hiện tại ✨
 
 💰 Mua: ${d.buyVND} / chỉ
 💰 Bán: ${d.sellVND} / chỉ

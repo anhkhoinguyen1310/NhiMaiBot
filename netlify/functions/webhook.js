@@ -7,7 +7,8 @@ const { fetchPrice } = require("./lib/price");
 const { formatPrice, apologyText } = require("./lib/format");
 const {
     sendText, sendQuickPriceOptions, sendTyping,
-    passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel
+    passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, getThreadOwner, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel,
+    sendPriceWithNote
 } = require("./lib/messenger");
 
 //const { consumeAsk1h, minutesLeft } = require("./lib/rateLimiter");

@@ -80,6 +80,22 @@ async function sendHandoverCard(psid) {
     });
 }
 
+async function sendPriceWithNote(psid, label) {
+    const d = await fetchPrice(label);
+    if (!d || !d.buyVND || !d.sellVND) {
+        await sendText(psid, apologyText());
+        return false; // không có giá → không gửi "Lưu ý"
+    }
+    // 1) gửi giá
+    await sendText(psid, formatPrice(d));
+    // 2) chỉ khi có giá mới gửi note
+    await sendText(
+        psid,
+        "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá 1 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
+    );
+    return true;
+}
+
 
 async function addLabelToUser(psid, labelId) {
     const url = `https://graph.facebook.com/v23.0/${labelId}/label?access_token=${PAGE_ACCESS_TOKEN}`;
@@ -179,4 +195,4 @@ async function clearNeedAgentLabel(psid, name = "Cứu Cứu") { // ← đổi t
 
 
 
-module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, takeThreadBack, addLabelToUser, requestThreadBack, getThreadOwner, getOrCreateLabelId, removeLabelFromUser, clearNeedAgentLabel };
+module.exports = { sendText, sendHandoverCard, sendQuickPriceOptions, sendTyping, passThreadToHuman, sendPriceWithNote, takeThreadBack, addLabelToUser, requestThreadBack, getThreadOwner, getOrCreateLabelId, removeLabelFromUser, clearNeedAgentLabel };
