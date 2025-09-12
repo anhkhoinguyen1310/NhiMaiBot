@@ -25,12 +25,15 @@ function formatPrice(d) {
         return apologyText();
     }
     const when = formatDatetime(d.updatedAt);
-    return `
-    🌼TIỆM VÀNG NHỊ MAI🌼
-    ✨ Giá Vàng ${d.type} hiện tại ✨
-    💰 Mua: ${d.buyVND} / chỉ
-    💰 Bán: ${d.sellVND} / chỉ
-    ⏰ Cập nhật: ${when} `;
+    return [
+        "🌼 TIỆM VÀNG NHỊ MAI 🌼",
+        `✨ Giá Vàng ${d.type} hiện tại ✨`,
+        "",
+        `💰 Mua: ${d.buyVND} / chỉ`,
+        `💰 Bán: ${d.sellVND} / chỉ`,
+        "",
+        `⏰ Cập nhật: ${when}`
+    ].join("\n");
 }
 
 module.exports = { formatPrice, formatDatetime, apologyText };
