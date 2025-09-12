@@ -1,8 +1,7 @@
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const GRAPH_BASE = "https://graph.facebook.com/v18.0";
 const PAGE_ID = process.env.PAGE_ID;
-const { formatPrice, apologyText } = require("./lib/format");
-
+const { apologyText, formatPrice } = require("./format");
 
 async function callGraph(body) {
     const r = await fetch(`${GRAPH_BASE}/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
