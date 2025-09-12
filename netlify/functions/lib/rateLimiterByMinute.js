@@ -1,5 +1,7 @@
 // Cửa sổ 1 giờ, cho hỏi 2 lần. Lần 3 chặn 60', mỗi lần vượt thêm +15'.
 const getDb = require("./mongo");
+const { recordDailyUser } = require("./stats");
+
 
 const WINDOW_SEC = 60 * 60;  // cửa sổ 1 giờ
 const BASE_ALLOW = 1;        // cho phép 2 lần trong 1 giờ
@@ -13,6 +15,9 @@ async function ensureIndexes(db) {
     if (indexesReady) return;
     const events = db.collection("ask_events");
     const blocks = db.collection("ask_blocks");
+
+    await events.insertOne({ psid, at: now });
+    await recordDailyUser(psid)
 
     // ask_events: TTL 1 giờ trên field 'at' (mỗi lần hỏi là 1 event auto-expire sau 60')
     const eIdx = await events.indexes();
