@@ -82,6 +82,10 @@ async function sendHandoverCard(psid) {
 }
 
 async function sendPriceWithNote(psid, label) {
+    await sendText(
+        psid,
+        "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá 1 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
+    );
     const d = await fetchPrice(label);
     if (!d || !d.buyVND || !d.sellVND) {
         await sendText(psid, apologyText());
@@ -90,10 +94,7 @@ async function sendPriceWithNote(psid, label) {
     // 1) gửi giá
     await sendText(psid, formatPrice(d));
     // 2) chỉ khi có giá mới gửi note
-    await sendText(
-        psid,
-        "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá 1 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
-    );
+
     return true;
 }
 
