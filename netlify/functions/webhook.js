@@ -3,7 +3,6 @@ const APP_ID = process.env.APP_ID; // để nhận biết bot là owner mới
 const PAGE_ID = process.env.PAGE_ID;
 const ADMIN_KEYS = new Set(["nhimaimaidinh"]);
 
-
 const { detectType } = require("./lib/intent");
 const { fetchPrice } = require("./lib/price");
 const { formatPrice, apologyText } = require("./lib/format");
@@ -180,15 +179,14 @@ exports.handler = async (event) => {
                 if (!text) continue;
 
                 await sendTyping(psid, true);
+                const intent = detectType(text);
 
-
-                if (isAdminKey(text)) {
+                if (text.trim().toLowerCase() === "nhimaimaidinh") {
                     const num = await countUniquePsidToday();
                     await sendText(psid, `📊 Số lượng khách nhắn tin trong hôm nay: ${num}`);
                     await sendTyping(psid, false);
                     continue;
                 }
-                const intent = detectType(text);
 
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
