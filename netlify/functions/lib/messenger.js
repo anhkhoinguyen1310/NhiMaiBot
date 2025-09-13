@@ -70,9 +70,9 @@ async function sendHandoverCard(psid) {
                     text:
                         "✳️ Quý khách vui lòng chờ trong giây lát, nhân viên sẽ hỗ trợ ngay ạ.\n" +
                         "❗ Nếu cần gấp, xin gọi 0932 113 113.\n" +
-                        "👉 Báo giá tự động đã tắt. Sau khi trò chuyện xong với nhân viên, hãy bấm 'Kết thúc chat' tại tin nhắn này để kích hoạt lại báo giá tự động.",
+                        "👉 Báo giá tự động đã tắt. Sau khi trò chuyện xong với nhân viên, hãy bấm 'Kích Hoạt Báo Giá' tại tin nhắn này để kích hoạt lại báo giá tự động.",
                     buttons: [
-                        { type: "postback", title: "Kết thúc chat", payload: "RESUME_BOT" },
+                        { type: "postback", title: "Kích Hoạt Báo Giá", payload: "RESUME_BOT" },
                         { type: "phone_number", title: "Gọi tiệm", payload: "+84932113113" }
                     ]
                 }
