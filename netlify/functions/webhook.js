@@ -61,7 +61,7 @@ exports.handler = async (event) => {
                 console.log("STANDBY RAW:", JSON.stringify(sEv));
                 console.log("STANDBY payload:", payload, "text:", text);
 
-                // 1) Khách bấm "Kết thúc chat" → lấy quyền về rồi cảm ơn
+                // 1) Khách bấm "Kích Hoạt Báo Giá" → lấy quyền về rồi cảm ơn
                 if (payload === "RESUME_BOT") {
                     const r = await takeThreadBack(psid, "resume_button");
                     console.log("take_thread_control:", r);
@@ -151,6 +151,7 @@ exports.handler = async (event) => {
                             } catch (e) { console.log("Label error:", e); }
                             // 2) gửi thẻ chờ
                             await sendHandoverCard(psid);
+                            await sendText(psid, "Dạ, mình cần em hỗ trợ gì ạ?");
                             await sendTyping(psid, false);
                             const r = await passThreadToHuman(psid, "user_request_human");
                             console.log("pass_thread_control:", r);
