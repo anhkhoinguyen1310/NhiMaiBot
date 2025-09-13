@@ -176,7 +176,7 @@ exports.handler = async (event) => {
                 await sendTyping(psid, true);
                 const intent = detectType(text);
 
-                if (text.trim().toLowerCase() === "nhimaimaidinh") {
+                if (isAdminKey(text)) {
                     const num = await countUniquePsidToday();
                     await sendText(psid, `📊 Số lượng khách nhắn tin trong hôm nay: ${num}`);
                     await sendTyping(psid, false);
