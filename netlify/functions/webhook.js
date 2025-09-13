@@ -169,7 +169,7 @@ exports.handler = async (event) => {
                     continue;
                 }
 
-                // ---- text
+                // ---- text---- //
                 const text = ev.message?.text || "";
                 if (!text) continue;
 

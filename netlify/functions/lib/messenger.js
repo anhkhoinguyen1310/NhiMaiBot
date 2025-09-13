@@ -90,7 +90,7 @@ async function sendPriceWithNote(psid, label) {
     // 1) gửi giá
     await sendText(
         psid,
-        "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá 2 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
+        "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá tối đa 2 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
     );
 
     await sendText(psid, formatPrice(d));
