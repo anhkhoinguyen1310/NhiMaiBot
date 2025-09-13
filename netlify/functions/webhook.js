@@ -152,7 +152,8 @@ exports.handler = async (event) => {
                             // 2) gửi thẻ chờ
                             await sendHandoverCard(psid);
                             // 3) delay 2s rồi gửi text hỏi thăm
-                            await new Promise(resolve => setTimeout(resolve, 3000)); // 2 seconds delay
+                            await sendTyping(psid, true);
+                            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 seconds delay
                             await sendText(psid, "Dạ, mình cần tiệm hỗ trợ gì ạ?");
                             await sendTyping(psid, false);
                             const r = await passThreadToHuman(psid, "user_request_human");
