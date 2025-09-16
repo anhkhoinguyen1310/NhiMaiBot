@@ -2,6 +2,7 @@ const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const APP_ID = process.env.APP_ID; // để nhận biết bot là owner mới
 const PAGE_ID = process.env.PAGE_ID;
 const ADMIN_KEYS = new Set(["nhimaimaidinh"]);
+const UNLOCK_KEYS = new Set(["resumebot"]);
 
 const { detectType } = require("./lib/intent");
 const {
@@ -62,7 +63,7 @@ exports.handler = async (event) => {
                 console.log("STANDBY payload:", payload, "text:", text);
 
                 // 1) Khách bấm "Kích Hoạt Báo Giá" → lấy quyền về rồi cảm ơn
-                if (payload === "RESUME_BOT") {
+                if (payload === "RESUME_BOT" || UNLOCK_KEYS.has(text.toString().trim().toLowerCase())) {
                     const r = await takeThreadBack(psid, "resume_button");
                     console.log("take_thread_control:", r);
                     if (r?.ok || r?.data?.success) {
