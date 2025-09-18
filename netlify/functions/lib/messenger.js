@@ -92,9 +92,9 @@ async function sendPriceWithNote(psid, label) {
         psid,
         "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá tối đa 2 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
     );
-
-    await sendText(psid, formatPrice(d));
     // 2) chỉ khi có giá mới gửi note
+    await sendText(psid, formatPrice(d));
+
     return true;
 
 }

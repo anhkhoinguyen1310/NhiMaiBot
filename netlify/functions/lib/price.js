@@ -19,3 +19,4 @@ async function fetchPrice(label) {
 }
 
 module.exports = { fetchPrice, fetchAllPrices };
+

@@ -19,10 +19,14 @@ function apologyText() {
         "⏰ Tiệm mở cửa từ 7:00 - 21:00 mỗi ngày.";
 
 }
+function apologyTextVND() {
+    return "🙏 Xin lỗi quý khách. Giá đang được cập nhật\n" +
+        "⏰ Quý khách vui lòng đợi trong giây lát.";
+}
 
 function formatPrice(d) {
     if (!d || !d.buyVND || !d.sellVND) {
-        return apologyText();
+        return apologyTextVND();
     }
     const when = formatDatetime(d.updatedAt);
     return [
