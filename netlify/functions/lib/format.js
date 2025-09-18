@@ -19,15 +19,9 @@ function apologyText() {
         "⏰ Tiệm mở cửa từ 7:00 - 21:00 mỗi ngày.";
 
 }
-function apologyTextUpdateTime() {
-    return "🙏 Xin lỗi quý khách. Giá đang được cập nhật\n" +
-        "⏰ Quý khách vui lòng đợi trong giây lát.";
-}
+
 
 function formatPrice(d) {
-    if (!d || !d.buyVND || !d.sellVND) {
-        return apologyTextUpdateTime();
-    }
     const when = formatDatetime(d.updatedAt);
     return [
         "🌼 TIỆM VÀNG NHỊ MAI 🌼",
