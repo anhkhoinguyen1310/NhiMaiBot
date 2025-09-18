@@ -20,7 +20,7 @@ function apologyText() {
 
 }
 function apologyUpdateText() {
-    return "🙏 Xin lỗi quý khách. Hiện tại tiệm đang cập nhật giá. Quý khách vui lòng quay lại sau ít phút nữa ạ.";
+    return "🙏 Xin lỗi quý khách. Hiện tại tiệm đang cập nhật giá. Quý khách vui lòng quay lại sau ít phút nữa!!";
 }
 
 function formatPrice(d) {
