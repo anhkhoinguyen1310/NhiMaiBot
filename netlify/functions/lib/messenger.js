@@ -1,8 +1,20 @@
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const GRAPH_BASE = "https://graph.facebook.com/v18.0";
 const PAGE_ID = process.env.PAGE_ID;
-const { apologyText, formatPrice } = require("./format");
+const { apologyText, formatPrice, apologyUpdateText } = require("./format");
 const { fetchPrice } = require("./price");
+// At the top of your file, require luxon:
+const { DateTime } = require("luxon");
+
+// Helper to get the current DateTime in Asia/Ho_Chi_Minh
+function getHoChiMinhNow() {
+    return DateTime.now().setZone("Asia/Ho_Chi_Minh");
+}
+
+function isBusinessHour(dt = getHoChiMinhNow()) {
+    const hour = dt.hour;
+    return hour >= 7 && hour < 21;
+}
 
 async function callGraph(body) {
     const r = await fetch(`${GRAPH_BASE}/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
@@ -83,20 +95,22 @@ async function sendHandoverCard(psid) {
 
 async function sendPriceWithNote(psid, label) {
     const d = await fetchPrice(label);
-    if (!d || !d.buyVND || !d.sellVND) {
-        await sendText(psid, apologyText());
+    if (isBusinessHour() && (!d || !d.buyVND || !d.sellVND)) {
+        await sendText(psid, apologyUpdateText());
         return false; // không có giá → không gửi "Lưu ý"
+    } else if (isBusinessHour()) {
+        // 1) gửi giá
+        await sendText(
+            psid,
+            "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá tối đa 2 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
+        );
+        // 2) chỉ khi có giá mới gửi note
+        await sendText(psid, formatPrice(d));
+        return true;
+    } else {
+        await sendText(psid, apologyText());
+        return false;
     }
-    // 1) gửi giá
-    await sendText(
-        psid,
-        "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá tối đa 2 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
-    );
-    // 2) chỉ khi có giá mới gửi note
-    await sendText(psid, formatPrice(d));
-
-    return true;
-
 }
 
 

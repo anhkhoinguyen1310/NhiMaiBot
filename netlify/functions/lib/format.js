@@ -19,7 +19,9 @@ function apologyText() {
         "⏰ Tiệm mở cửa từ 7:00 - 21:00 mỗi ngày.";
 
 }
-
+function apologyUpdateText() {
+    return "🙏 Xin lỗi quý khách. Hiện tại tiệm đang cập nhật giá. Quý khách vui lòng quay lại sau ít phút nữa ạ.";
+}
 
 function formatPrice(d) {
     const when = formatDatetime(d.updatedAt);
@@ -34,4 +36,4 @@ function formatPrice(d) {
     ].join("\n");
 }
 
-module.exports = { formatPrice, formatDatetime, apologyText };
+module.exports = { formatPrice, formatDatetime, apologyText, apologyUpdateText };
