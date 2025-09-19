@@ -40,7 +40,9 @@ exports.handler = async (event) => {
     if (event.httpMethod === "GET") {
         const p = event.queryStringParameters || {};
         if (p["hub.mode"] === "subscribe" && p["hub.verify_token"] === VERIFY_TOKEN) {
+            console.log("WEBHOOK_VERIFIED ", "Hub Challenge:", p["hub.challenge"], "Hub Mode:", p["hub.mode"]);
             return { statusCode: 200, body: p["hub.challenge"] };
+
         }
         return { statusCode: 403, body: "Forbidden" };
     }

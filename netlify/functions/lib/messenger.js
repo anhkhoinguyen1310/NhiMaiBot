@@ -99,12 +99,12 @@ async function sendPriceWithNote(psid, label) {
         await sendText(psid, apologyUpdateText());
         return false; // không có giá → không gửi "Lưu ý"
     } else if (isBusinessHour()) {
-        // 1) gửi giá
+        // 1) gửi lưu ý
         await sendText(
             psid,
             "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá tối đa 2 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
         );
-        // 2) chỉ khi có giá mới gửi note
+        // 2) gửi giá
         await sendText(psid, formatPrice(d));
         return true;
     } else {
