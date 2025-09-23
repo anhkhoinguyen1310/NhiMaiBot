@@ -3,6 +3,7 @@ const APP_ID = process.env.APP_ID; // để nhận biết bot là owner mới
 const PAGE_ID = process.env.PAGE_ID;
 const ADMIN_KEYS = new Set(["nhimaimaidinh"]);
 const UNLOCK_KEYS = new Set(["bật bot"]);
+const RESET_LIMIT_KEYS = new Set(["khoisiudeptrai"]);
 
 const { detectType } = require("./lib/intent");
 const {
@@ -11,13 +12,19 @@ const {
     sendPriceWithNote
 } = require("./lib/messenger");
 const { countUniquePsidToday } = require("./lib/stats");
-const { consumeAsk1hByMinutes, minutesLeft } = require("./lib/rateLimiterByMinute");
+const { consumeAsk1hByMinutes, minutesLeft, resetUserLimit } = require("./lib/rateLimiterByMinute");
 
 
 function isAdminKey(s = "") {
     const x = s.toString().trim().toLowerCase()
         .normalize("NFD").replace(/\p{Diacritic}/gu, "");
     return ADMIN_KEYS.has(x);
+}
+
+function isResetLimitKey(s = "") {
+    const x = s.toString().trim().toLowerCase()
+        .normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    return RESET_LIMIT_KEYS.has(x);
 }
 
 async function logThreadOwner(psid) {
@@ -40,7 +47,6 @@ exports.handler = async (event) => {
     if (event.httpMethod === "GET") {
         const p = event.queryStringParameters || {};
         if (p["hub.mode"] === "subscribe" && p["hub.verify_token"] === VERIFY_TOKEN) {
-            console.log("WEBHOOK_VERIFIED ", "Hub Challenge:", p["hub.challenge"], "Hub Mode:", p["hub.mode"]);
             return { statusCode: 200, body: p["hub.challenge"] };
 
         }
@@ -186,6 +192,12 @@ exports.handler = async (event) => {
                 if (isAdminKey(text)) {
                     const num = await countUniquePsidToday();
                     await sendText(psid, `📊 Số lượng khách nhắn tin trong hôm nay: ${num}`);
+                    await sendTyping(psid, false);
+                    continue;
+                }
+                if (isResetLimitKey(text)) {
+                    await resetUserLimit(psid);
+                    await sendText(psid, "✅ Đã reset giới hạn hỏi giá cho bạn!");
                     await sendTyping(psid, false);
                     continue;
                 }

@@ -108,4 +108,21 @@ async function consumeAsk1hByMinutes(psid) {
     };
 }
 
-module.exports = { consumeAsk1hByMinutes, minutesLeft };
+async function resetUserLimit(psid) {
+    const db = await getDb();
+    await ensureIndexes(db);
+
+    const events = db.collection("ask_events");
+    const blocks = db.collection("ask_blocks");
+
+    // Delete all events for this user (clears their rate limit history)
+    await events.deleteMany({ psid });
+
+    // Delete any active blocks for this user
+    await blocks.deleteOne({ psid });
+
+    console.log("resetUserLimit", { psid, message: "Rate limit cleared" });
+    return { success: true, message: "Rate limit reset successfully" };
+}
+
+module.exports = { consumeAsk1hByMinutes, minutesLeft, resetUserLimit };
