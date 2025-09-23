@@ -197,7 +197,7 @@ exports.handler = async (event) => {
                 }
                 if (isResetLimitKey(text)) {
                     await resetUserLimit(psid);
-                    await sendText(psid, "✅ Đã reset giới hạn hỏi giá cho bạn!");
+                    await sendText(psid, "😵‍💫 Gỡ chặn rồi đó, hỏi gì hỏi tiếp đi đồ độc ác!");
                     await sendTyping(psid, false);
                     continue;
                 }
