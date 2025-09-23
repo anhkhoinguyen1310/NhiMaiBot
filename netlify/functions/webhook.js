@@ -11,7 +11,7 @@ const {
     passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel,
     sendPriceWithNote
 } = require("./lib/messenger");
-const { countUniquePsidToday } = require("./lib/stats");
+const { countUniquePsidToday, countDailyMessages } = require("./lib/stats");
 const { consumeAsk1hByMinutes, minutesLeft, resetUserLimit } = require("./lib/rateLimiterByMinute");
 
 
@@ -190,8 +190,19 @@ exports.handler = async (event) => {
                 const intent = detectType(text);
 
                 if (isAdminKey(text)) {
-                    const num = await countUniquePsidToday();
-                    await sendText(psid, `📊 Số lượng khách nhắn tin trong hôm nay: ${num}`);
+                    const uniqueUsers = await countUniquePsidToday();
+                    const dailyVolume = await countDailyMessages();
+                    const avgMessagesPerUser = uniqueUsers > 0 ? (dailyVolume / uniqueUsers).toFixed(1) : 0;
+
+                    const message = [
+                        "📊 THỐNG KÊ HÔM NAY:",
+                        `� Số người dùng: ${uniqueUsers}`,
+                        `💬 Tổng tin nhắn: ${dailyVolume}`,
+                        `📈 Trung bình: ${avgMessagesPerUser} tin/người`,
+                        `⏰ Cập nhật: ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
+                    ].join("\n");
+
+                    await sendText(psid, message);
                     await sendTyping(psid, false);
                     continue;
                 }

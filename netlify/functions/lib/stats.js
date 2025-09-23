@@ -47,4 +47,22 @@ async function countUniquePsidByDay(day) {
     return db.collection("ask_daily_users").countDocuments({ day });
 }
 
-module.exports = { recordDailyUser, countUniquePsidToday, countUniquePsidByDay };
+/** Đếm tổng số tin nhắn trong ngày từ ask_events collection */
+async function countDailyMessages() {
+    const db = await getDb();
+
+    // Use Vietnam timezone consistently, like other functions
+    const day = dayStrInTZ(); // Get today in VN timezone
+    const todayVN = new Date(day + 'T00:00:00.000+07:00'); // Start of day in VN
+    const tomorrowVN = new Date(todayVN);
+    tomorrowVN.setDate(tomorrowVN.getDate() + 1); // End of day in VN
+
+    const events = db.collection("ask_events");
+    const count = await events.countDocuments({
+        at: { $gte: todayVN, $lt: tomorrowVN }
+    });
+
+    return count;
+}
+
+module.exports = { recordDailyUser, countUniquePsidToday, countUniquePsidByDay, countDailyMessages };

@@ -10,6 +10,7 @@ const { recordDailyUser } = require("./stats");
 function minutesLeft(sec) { return Math.ceil(sec / 60); }
 
 let indexesReady = false;
+
 async function ensureIndexes(db) {
     if (indexesReady) return;
     const events = db.collection("ask_events");
