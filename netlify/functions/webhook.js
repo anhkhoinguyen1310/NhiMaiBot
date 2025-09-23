@@ -196,7 +196,7 @@ exports.handler = async (event) => {
 
                     const message = [
                         "📊 THỐNG KÊ HÔM NAY:",
-                        `� Số người dùng: ${uniqueUsers}`,
+                        `🧑‍💼 Số người nhắn tin: ${uniqueUsers}`,
                         `💬 Tổng tin nhắn: ${dailyVolume}`,
                         `📈 Trung bình: ${avgMessagesPerUser} tin/người`,
                         `⏰ Cập nhật: ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
