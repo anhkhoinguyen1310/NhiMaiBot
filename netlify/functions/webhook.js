@@ -216,9 +216,8 @@ exports.handler = async (event) => {
                     const avg24h = activeUsers24h > 0 ? (total24h / activeUsers24h).toFixed(1) : 0;
                     const message = [
                         "📊 THỐNG KÊ:",
-                        `🧑‍💼 Số người hôm nay (giờ VN): ${uniqueUsersToday}`,
+                        `🧑‍💼 Số người hôm nay: ${uniqueUsersToday}`,
                         `💬 Tổng tin nhắn 24h qua: ${total24h}`,
-                        `👥 Người hoạt động 24h qua: ${activeUsers24h}`,
                         `📈 TB 24h: ${avg24h} tin/người`,
                         `⏰ Cập nhật: ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
                     ].join("\n");
