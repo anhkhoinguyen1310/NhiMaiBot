@@ -222,13 +222,13 @@ exports.handler = async (event) => {
                         `⏰ Cập nhật: ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
                     ].join("\n");
                     await sendText(psid, message);
-                    await sendTyping(psid, false);
+                    await sendTyping(psid, true);
                     continue;
                 }
                 if (isResetLimitKey(text)) {
                     await resetUserLimit(psid);
                     await sendText(psid, "😵‍💫 Gỡ chặn rồi đó, hỏi gì hỏi tiếp đi đồ độc ác!");
-                    await sendTyping(psid, false);
+                    await sendTyping(psid, true);
                     continue;
                 }
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
