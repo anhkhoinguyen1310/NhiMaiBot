@@ -50,7 +50,7 @@ async function countUniquePsidByDay(day) {
 /** Đếm tổng số tin nhắn trong ngày từ ask_events collection */
 async function countDailyMessages() {
     const db = await getDb();
-
+    
     // Use Vietnam timezone consistently, like other functions
     const day = dayStrInTZ(); // Get today in VN timezone
     const todayVN = new Date(day + 'T00:00:00.000+07:00'); // Start of day in VN
@@ -65,4 +65,34 @@ async function countDailyMessages() {
     return count;
 }
 
-module.exports = { recordDailyUser, countUniquePsidToday, countUniquePsidByDay, countDailyMessages };
+/** Ghi nhận tin nhắn vào thống kê daily (persistent) */
+async function recordDailyMessage(psid, messageType = "general") {
+    const db = await getDb();
+    const dailyStats = db.collection("daily_message_stats");
+    const day = dayStrInTZ(); // Get today in VN timezone
+    
+    await dailyStats.updateOne(
+        { date: day },
+        { 
+            $inc: { 
+                totalMessages: 1,
+                [`messageTypes.${messageType}`]: 1
+            },
+            $addToSet: { uniqueUsers: psid },
+            $setOnInsert: { createdAt: new Date() }
+        },
+        { upsert: true }
+    );
+}
+
+/** Đếm tổng số tin nhắn trong ngày từ daily_message_stats (24h) */
+async function countTotalDailyMessages() {
+    const db = await getDb();
+    const dailyStats = db.collection("daily_message_stats");
+    const day = dayStrInTZ();
+    
+    const stats = await dailyStats.findOne({ date: day });
+    return stats?.totalMessages || 0;
+}
+
+module.exports = { recordDailyUser, countUniquePsidToday, countUniquePsidByDay, countDailyMessages, recordDailyMessage, countTotalDailyMessages };
