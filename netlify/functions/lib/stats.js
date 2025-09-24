@@ -107,6 +107,31 @@ async function countActiveUsersLast24h() {
     return ids.length;
 }
 
+/** Count clicks on "Vấn Đề Khác" (payload TALK_TO_AGENT) in last 24h. */
+async function countVanDeKhacClicksLast24h() {
+    const db = await getDb();
+    await ensure24hIndexes(db);
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return db.collection("ask_events_24h").countDocuments({
+        at: { $gt: since },
+        kind: "payload",
+        payload: "TALK_TO_AGENT",
+    });
+}
+
+/** Count unique users who clicked "Vấn Đề Khác" in last 24h. */
+async function countVanDeKhacUsersLast24h() {
+    const db = await getDb();
+    await ensure24hIndexes(db);
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const ids = await db.collection("ask_events_24h").distinct("psid", {
+        at: { $gt: since },
+        kind: "payload",
+        payload: "TALK_TO_AGENT",
+    });
+    return ids.length;
+}
+
 /** Ensure all stats-related indexes (daily + 24h). Safe to call repeatedly. */
 async function ensureStatsIndexes() {
     const db = await getDb();
@@ -125,4 +150,6 @@ module.exports = {
     recordEvent24h,
     countMessagesLast24h,
     countActiveUsersLast24h,
+    countVanDeKhacClicksLast24h,
+    countVanDeKhacUsersLast24h,
 };
