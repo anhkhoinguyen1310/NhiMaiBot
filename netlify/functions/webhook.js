@@ -222,7 +222,7 @@ exports.handler = async (event) => {
                         "📊 THỐNG KÊ:",
                         `🧑‍💼 Số người hôm nay: ${uniqueUsersToday}`,
                         `💬 Tổng tin nhắn 24h qua: ${total24h}`,
-                        `🆘 Vấn Đề Khác 24h: ${vdkClicks24h} click / ${vdkUsers24h} người`,
+                        `🆘 Số người ấn vào Vấn Đề Khác trong hôm nay: ${vdkClicks24h} click / ${vdkUsers24h} người`,
                         `📈 TB 24h: ${avg24h} tin/người`,
                         `⏰ Cập nhật: ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
                     ].join("\n");
