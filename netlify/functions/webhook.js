@@ -11,7 +11,14 @@ const {
     passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel,
     sendPriceWithNote
 } = require("./lib/messenger");
-const { countUniquePsidToday, countDailyMessages } = require("./lib/stats");
+const {
+    countUniquePsidToday,
+    countDailyMessages,
+    recordEvent24h,
+    countMessagesLast24h,
+    countActiveUsersLast24h,
+    ensureStatsIndexes,
+} = require("./lib/stats");
 const { consumeAsk1hByMinutes, minutesLeft, resetUserLimit } = require("./lib/rateLimiterByMinute");
 
 
@@ -42,7 +49,14 @@ async function logThreadOwner(psid) {
     console.log("thread_owner:", data);   // sẽ thấy app_id chủ thread hiện tại
 }
 
+// Proactively ensure stats indexes/collections on cold start
+let statsEnsured = false;
+
 exports.handler = async (event) => {
+    if (!statsEnsured) {
+        try { await ensureStatsIndexes(); } catch (e) { console.log("ensureStatsIndexes error:", e?.message || e); }
+        statsEnsured = true;
+    }
     // Verify webhook (GET)
     if (event.httpMethod === "GET") {
         const p = event.queryStringParameters || {};
@@ -122,6 +136,8 @@ exports.handler = async (event) => {
                 const payload = ev.message?.quick_reply?.payload || ev.postback?.payload || null;
                 if (payload) {
                     await sendTyping(psid, true);
+                    // record interaction for 24h rolling window
+                    try { await recordEvent24h(psid, { kind: "payload", payload }); } catch (e) { console.log("recordEvent24h(payload)", e?.message || e); }
 
                     // ✅ Nếu user bấm "Kết thúc chat" quá nhanh (trước khi pass xong),
                     // postback sẽ rơi vào entry.messaging. Xử lý ngay tại đây:
@@ -187,21 +203,25 @@ exports.handler = async (event) => {
                 if (!text) continue;
 
                 await sendTyping(psid, true);
+                // record interaction for 24h rolling window
+                try { await recordEvent24h(psid, { kind: "text" }); } catch (e) { console.log("recordEvent24h(text)", e?.message || e); }
                 const intent = detectType(text);
 
                 if (isAdminKey(text)) {
-                    const uniqueUsers = await countUniquePsidToday();
-                    const dailyVolume = await countDailyMessages();
-                    const avgMessagesPerUser = uniqueUsers > 0 ? (dailyVolume / uniqueUsers).toFixed(1) : 0;
-
+                    const [uniqueUsersToday, total24h, activeUsers24h] = await Promise.all([
+                        countUniquePsidToday(),
+                        countMessagesLast24h(),
+                        countActiveUsersLast24h(),
+                    ]);
+                    const avg24h = activeUsers24h > 0 ? (total24h / activeUsers24h).toFixed(1) : 0;
                     const message = [
-                        "📊 THỐNG KÊ HÔM NAY:",
-                        `🧑‍💼 Số người nhắn tin: ${uniqueUsers}`,
-                        `💬 Tổng tin nhắn trong 1H qua: ${dailyVolume}`,
-                        `📈 Trung bình: ${avgMessagesPerUser} tin/người`,
+                        "📊 THỐNG KÊ:",
+                        `🧑‍💼 Số người hôm nay (giờ VN): ${uniqueUsersToday}`,
+                        `💬 Tổng tin nhắn 24h qua: ${total24h}`,
+                        `👥 Người hoạt động 24h qua: ${activeUsers24h}`,
+                        `📈 TB 24h: ${avg24h} tin/người`,
                         `⏰ Cập nhật: ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
                     ].join("\n");
-
                     await sendText(psid, message);
                     await sendTyping(psid, false);
                     continue;

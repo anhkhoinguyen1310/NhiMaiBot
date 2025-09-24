@@ -50,7 +50,7 @@ async function countUniquePsidByDay(day) {
 /** Đếm tổng số tin nhắn trong ngày từ ask_events collection */
 async function countDailyMessages() {
     const db = await getDb();
-    
+
     // Use Vietnam timezone consistently, like other functions
     const day = dayStrInTZ(); // Get today in VN timezone
     const todayVN = new Date(day + 'T00:00:00.000+07:00'); // Start of day in VN
@@ -65,34 +65,64 @@ async function countDailyMessages() {
     return count;
 }
 
-/** Ghi nhận tin nhắn vào thống kê daily (persistent) */
-async function recordDailyMessage(psid, messageType = "general") {
-    const db = await getDb();
-    const dailyStats = db.collection("daily_message_stats");
-    const day = dayStrInTZ(); // Get today in VN timezone
-    
-    await dailyStats.updateOne(
-        { date: day },
-        { 
-            $inc: { 
-                totalMessages: 1,
-                [`messageTypes.${messageType}`]: 1
-            },
-            $addToSet: { uniqueUsers: psid },
-            $setOnInsert: { createdAt: new Date() }
-        },
-        { upsert: true }
-    );
+// ===== Rolling 24h metrics (continuous window) =====
+let rollingIdxReady = false;
+async function ensure24hIndexes(db) {
+    if (rollingIdxReady) return;
+    const coll = db.collection("ask_events_24h");
+
+    // compound for psid + time range queries
+    const idx = await coll.indexes();
+    if (!idx.find(i => i.name === "psid_1_at_1")) {
+        await coll.createIndex({ psid: 1, at: 1 }, { name: "psid_1_at_1" });
+    }
+    // TTL: expire documents after 24h
+    if (!idx.find(i => i.name === "at_ttl_24h")) {
+        await coll.createIndex({ at: 1 }, { name: "at_ttl_24h", expireAfterSeconds: 24 * 60 * 60 });
+    }
+    rollingIdxReady = true;
 }
 
-/** Đếm tổng số tin nhắn trong ngày từ daily_message_stats (24h) */
-async function countTotalDailyMessages() {
+/** Insert one rolling-24h event for any inbound user interaction. */
+async function recordEvent24h(psid, extra = {}) {
     const db = await getDb();
-    const dailyStats = db.collection("daily_message_stats");
-    const day = dayStrInTZ();
-    
-    const stats = await dailyStats.findOne({ date: day });
-    return stats?.totalMessages || 0;
+    await ensure24hIndexes(db);
+    await db.collection("ask_events_24h").insertOne({ psid, at: new Date(), ...extra });
 }
 
-module.exports = { recordDailyUser, countUniquePsidToday, countUniquePsidByDay, countDailyMessages, recordDailyMessage, countTotalDailyMessages };
+/** Count all events in the last 24 hours (server clock). */
+async function countMessagesLast24h() {
+    const db = await getDb();
+    await ensure24hIndexes(db);
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return db.collection("ask_events_24h").countDocuments({ at: { $gt: since } });
+}
+
+/** Count unique users active in the last 24 hours. */
+async function countActiveUsersLast24h() {
+    const db = await getDb();
+    await ensure24hIndexes(db);
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const ids = await db.collection("ask_events_24h").distinct("psid", { at: { $gt: since } });
+    return ids.length;
+}
+
+/** Ensure all stats-related indexes (daily + 24h). Safe to call repeatedly. */
+async function ensureStatsIndexes() {
+    const db = await getDb();
+    try { await ensureDailyIndexes(db); } catch (e) { console.log("ensureDailyIndexes error:", e?.message || e); }
+    try { await ensure24hIndexes(db); } catch (e) { console.log("ensure24hIndexes error:", e?.message || e); }
+}
+
+module.exports = {
+    recordDailyUser,
+    countUniquePsidToday,
+    countUniquePsidByDay,
+    countDailyMessages,
+    // 24h rolling
+    ensure24hIndexes,
+    ensureStatsIndexes,
+    recordEvent24h,
+    countMessagesLast24h,
+    countActiveUsersLast24h,
+};
