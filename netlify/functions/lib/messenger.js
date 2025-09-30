@@ -3,7 +3,6 @@ const GRAPH_BASE = "https://graph.facebook.com/v18.0";
 const PAGE_ID = process.env.PAGE_ID;
 const { apologyText, formatPrice, apologyUpdateText } = require("./format");
 const { fetchPrice } = require("./price");
-// At the top of your file, require luxon:
 const { DateTime } = require("luxon");
 
 // Helper to get the current DateTime in Asia/Ho_Chi_Minh

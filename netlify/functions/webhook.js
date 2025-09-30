@@ -220,7 +220,7 @@ exports.handler = async (event) => {
                     const avg24h = activeUsers24h > 0 ? (total24h / activeUsers24h).toFixed(1) : 0;
                     const message = [
                         "📊 THỐNG KÊ:",
-                        `🧑‍💼 Số người hôm nay: ${uniqueUsersToday}`,
+                        `🧑‍💼 Số người nhắn tin hôm nay: ${uniqueUsersToday}`,
                         `💬 Tổng tin nhắn 24h qua: ${total24h}`,
                         `🆘 Số người ấn vào "Vấn Đề Khác" hôm nay: ${vdkClicks24h} click / ${vdkUsers24h} người`,
                         `📈 TB 24h: ${avg24h} tin/người`,
