@@ -1,9 +1,23 @@
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
-const APP_ID = process.env.APP_ID; // để nhận biết bot là owner mới
+const APP_ID = process.env.APP_ID;
 const PAGE_ID = process.env.PAGE_ID;
-const ADMIN_KEYS = new Set(["nhimaimaidinh"]);
-const UNLOCK_KEYS = new Set(["bật bot"]);
-const RESET_LIMIT_KEYS = new Set(["khoisiudeptrai"]);
+
+function buildKeySet(raw) {
+    if (!raw) return new Set();
+    return new Set(raw.split(/[,;\n]/)
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean)
+        .map(s => s.normalize("NFD").replace(/\p{Diacritic}/gu, ""))
+    );
+}
+
+// ENV variables (comma/semicolon/newline separated). Examples:
+// ADMIN_KEYS=nhimaimaidinh,anotherkey
+// UNLOCK_KEYS=bat bot
+// RESET_LIMIT_KEYS=khoisiudeptrai
+const ADMIN_KEYS = buildKeySet(process.env.ADMIN_KEYS || "nhimaimaidinh");
+const UNLOCK_KEYS = buildKeySet(process.env.UNLOCK_KEYS || "bat bot");
+const RESET_LIMIT_KEYS = buildKeySet(process.env.RESET_LIMIT_KEYS || "khoisiudeptrai");
 
 const { detectType } = require("./lib/intent");
 const {
@@ -27,17 +41,12 @@ const {
 const { consumeAsk1hByMinutes, minutesLeft, resetUserLimit } = require("./lib/rateLimiterByMinute");
 
 
-function isAdminKey(s = "") {
-    const x = s.toString().trim().toLowerCase()
+function normalizeKey(s = "") {
+    return s.toString().trim().toLowerCase()
         .normalize("NFD").replace(/\p{Diacritic}/gu, "");
-    return ADMIN_KEYS.has(x);
 }
-
-function isResetLimitKey(s = "") {
-    const x = s.toString().trim().toLowerCase()
-        .normalize("NFD").replace(/\p{Diacritic}/gu, "");
-    return RESET_LIMIT_KEYS.has(x);
-}
+function isAdminKey(s = "") { return ADMIN_KEYS.has(normalizeKey(s)); }
+function isResetLimitKey(s = "") { return RESET_LIMIT_KEYS.has(normalizeKey(s)); }
 
 async function logThreadOwner(psid) {
     const PAGE_ID = process.env.PAGE_ID;
