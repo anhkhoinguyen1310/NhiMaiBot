@@ -139,6 +139,44 @@ async function ensureStatsIndexes() {
     try { await ensure24hIndexes(db); } catch (e) { console.log("ensure24hIndexes error:", e?.message || e); }
 }
 
+// ===== Day (VN) based counts from ask_events_24h (not rolling) =====
+function vnDayRange(date = new Date()) {
+    const day = dayStrInTZ(date);
+    const start = new Date(day + 'T00:00:00.000+07:00');
+    const end = new Date(start); end.setDate(end.getDate() + 1);
+    return { start, end };
+}
+
+async function countMessagesTodayVN() {
+    const db = await getDb();
+    await ensure24hIndexes(db);
+    const { start, end } = vnDayRange();
+    return db.collection("ask_events_24h").countDocuments({ at: { $gte: start, $lt: end } });
+}
+
+async function countVanDeKhacClicksTodayVN() {
+    const db = await getDb();
+    await ensure24hIndexes(db);
+    const { start, end } = vnDayRange();
+    return db.collection("ask_events_24h").countDocuments({
+        at: { $gte: start, $lt: end },
+        kind: "payload",
+        payload: "TALK_TO_AGENT",
+    });
+}
+
+async function countVanDeKhacUsersTodayVN() {
+    const db = await getDb();
+    await ensure24hIndexes(db);
+    const { start, end } = vnDayRange();
+    const ids = await db.collection("ask_events_24h").distinct("psid", {
+        at: { $gte: start, $lt: end },
+        kind: "payload",
+        payload: "TALK_TO_AGENT",
+    });
+    return ids.length;
+}
+
 module.exports = {
     recordDailyUser,
     countUniquePsidToday,
@@ -152,4 +190,7 @@ module.exports = {
     countActiveUsersLast24h,
     countVanDeKhacClicksLast24h,
     countVanDeKhacUsersLast24h,
+    countMessagesTodayVN,
+    countVanDeKhacClicksTodayVN,
+    countVanDeKhacUsersTodayVN,
 };

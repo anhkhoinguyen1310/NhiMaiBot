@@ -20,6 +20,9 @@ const {
     ensureStatsIndexes,
     countVanDeKhacClicksLast24h,
     countVanDeKhacUsersLast24h,
+    countMessagesTodayVN,
+    countVanDeKhacClicksTodayVN,
+    countVanDeKhacUsersTodayVN,
 } = require("./lib/stats");
 const { consumeAsk1hByMinutes, minutesLeft, resetUserLimit } = require("./lib/rateLimiterByMinute");
 
@@ -210,20 +213,19 @@ exports.handler = async (event) => {
                 const intent = detectType(text);
 
                 if (isAdminKey(text)) {
-                    const [uniqueUsersToday, total24h, activeUsers24h, vdkClicks24h, vdkUsers24h] = await Promise.all([
+                    const [uniqueUsersToday, msgsToday, vdkClicksToday, vdkUsersToday] = await Promise.all([
                         countUniquePsidToday(),
-                        countMessagesLast24h(),
-                        countActiveUsersLast24h(),
-                        countVanDeKhacClicksLast24h(),
-                        countVanDeKhacUsersLast24h(),
+                        countMessagesTodayVN(),
+                        countVanDeKhacClicksTodayVN(),
+                        countVanDeKhacUsersTodayVN(),
                     ]);
-                    const avg24h = activeUsers24h > 0 ? (total24h / activeUsers24h).toFixed(1) : 0;
+                    const avgToday = uniqueUsersToday > 0 ? (msgsToday / uniqueUsersToday).toFixed(1) : 0;
                     const message = [
-                        "📊 THỐNG KÊ:",
-                        `🧑‍💼 Tổng số người nhắn tin hôm nay: ${uniqueUsersToday}`,
-                        `💬 Tổng tin nhắn 24h qua: ${total24h}`,
-                        `🆘 Số người ấn vào "Vấn Đề Khác" hôm nay: ${vdkClicks24h} click / ${vdkUsers24h} người`,
-                        `📈 TB 24h: ${avg24h} tin/người`,
+                        "📊 THỐNG KÊ HÔM NAY (VN):",
+                        `🧑‍💼 Tổng số người nhắn tin: ${uniqueUsersToday}`,
+                        `💬 Tổng tin nhắn: ${msgsToday}`,
+                        `🆘 Vấn Đề Khác: ${vdkClicksToday} click / ${vdkUsersToday} người`,
+                        `📈 Trung bình: ${avgToday} tin/người`,
                         `⏰ Cập nhật: ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
                     ].join("\n");
                     await sendText(psid, message);
