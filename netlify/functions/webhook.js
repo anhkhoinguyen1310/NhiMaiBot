@@ -40,6 +40,22 @@ function normalizeKey(s = "") {
 function isAdminKey(s = "") { return ADMIN_KEYS.has(normalizeKey(s)); }
 function isResetLimitKey(s = "") { return RESET_LIMIT_KEYS.has(normalizeKey(s)); }
 
+// Helper to wrap work in a typing indicator with a minimum visible duration
+async function withTyping(psid, workFn, minMs = 500) {
+    const start = Date.now();
+    try {
+        await sendTyping(psid, true);
+        const res = await workFn();
+        const elapsed = Date.now() - start;
+        if (elapsed < minMs) {
+            await new Promise(r => setTimeout(r, minMs - elapsed));
+        }
+        return res;
+    } finally {
+        await sendTyping(psid, false);
+    }
+}
+
 async function logThreadOwner(psid) {
     const PAGE_ID = process.env.PAGE_ID;
     const ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
@@ -140,8 +156,6 @@ exports.handler = async (event) => {
                 // ---- payload trước
                 const payload = ev.message?.quick_reply?.payload || ev.postback?.payload || null;
                 if (payload) {
-                    // show typing while processing payload intent
-                    await sendTyping(psid, true);
                     // record interaction for 24h rolling window
                     try { await recordEvent24h(psid, { kind: "payload", payload }); } catch (e) { console.log("recordEvent24h(payload)", e?.message || e); }
 
@@ -153,27 +167,29 @@ exports.handler = async (event) => {
                         await sendTyping(psid, false);
                         continue;
                     }
-                    //stop spamming
-                    if (["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
-                        await sendTyping(psid, true);
-                        const res = await consumeAsk1hByMinutes(psid);
-                        console.log("limiter(1h atlas):", { psid, res });
-                        if (!res.allowed) {
-                            await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
-
-                            await sendTyping(psid, true);
-
-                            continue;
-                        }
-
+                    const pricePayloads = ["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"];
+                    if (pricePayloads.includes(payload)) {
+                        await withTyping(psid, async () => {
+                            const res = await consumeAsk1hByMinutes(psid);
+                            console.log("limiter(1h atlas):", { psid, res });
+                            if (!res.allowed) {
+                                await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
+                                return;
+                            }
+                            // Map payload to label and send price
+                            const labelMap = {
+                                PRICE_NHAN_9999: "Nhẫn 9999",
+                                PRICE_VANG_18K: "Nữ Trang 610",
+                                PRICE_VANG_24K: "Nữ Trang 980",
+                            };
+                            await sendPriceWithNote(psid, labelMap[payload]);
+                        });
+                        continue;
                     }
 
 
                     var label = null;
                     switch (payload) {
-                        case "PRICE_NHAN_9999": label = "Nhẫn 9999"; break;
-                        case "PRICE_VANG_18K": label = "Nữ Trang 610"; break;
-                        case "PRICE_VANG_24K": label = "Nữ Trang 980"; break;
                         case "TALK_TO_AGENT": {
                             // 1) gắn nhãn để agent lọc kịp thời
                             try {
@@ -194,12 +210,7 @@ exports.handler = async (event) => {
                         }
                     }
 
-                    var label =
-                        payload === "PRICE_NHAN_9999" ? "Nhẫn 9999" :
-                            payload === "PRICE_VANG_18K" ? "Nữ Trang 610" :
-                                "Nữ Trang 980";
-                    const noteSent = await sendPriceWithNote(psid, label); // ← chỉ gửi note khi có giá
-                    await sendTyping(psid, false);
+                    // Non-price payloads fall through here (e.g. TALK_TO_AGENT handled above)
                     continue;
                 }
 
@@ -248,18 +259,15 @@ exports.handler = async (event) => {
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
                 if (intent.type === "price") {
-                    await sendTyping(psid, true);
-
-                    const res = await consumeAsk1hByMinutes(psid);
-                    console.log("limiter(1h atlas):", { psid, res });
-                    if (!res.allowed) {
-                        await sendTyping(psid, false);
-                        await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
-                        continue;
-                    }
-
-                    await sendPriceWithNote(psid, intent.label); // ← chỉ gửi note khi có giá
-                    await sendTyping(psid, false);
+                    await withTyping(psid, async () => {
+                        const res = await consumeAsk1hByMinutes(psid);
+                        console.log("limiter(1h atlas):", { psid, res });
+                        if (!res.allowed) {
+                            await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
+                            return;
+                        }
+                        await sendPriceWithNote(psid, intent.label);
+                    });
                     continue;
                 }
                 // không hiểu → gợi ý
