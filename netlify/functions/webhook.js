@@ -11,13 +11,9 @@ function buildKeySet(raw) {
     );
 }
 
-// ENV variables (comma/semicolon/newline separated). Examples:
-// ADMIN_KEYS=nhimaimaidinh,anotherkey
-// UNLOCK_KEYS=bat bot
-// RESET_LIMIT_KEYS=khoisiudeptrai
-const ADMIN_KEYS = buildKeySet(process.env.ADMIN_KEYS || "nhimaimaidinh");
-const UNLOCK_KEYS = buildKeySet(process.env.UNLOCK_KEYS || "bat bot");
-const RESET_LIMIT_KEYS = buildKeySet(process.env.RESET_LIMIT_KEYS || "khoisiudeptrai");
+const ADMIN_KEYS = buildKeySet(process.env.ADMIN_KEYS);
+const UNLOCK_KEYS = buildKeySet(process.env.UNLOCK_KEYS);
+const RESET_LIMIT_KEYS = buildKeySet(process.env.RESET_LIMIT_KEYS);
 
 const { detectType } = require("./lib/intent");
 const {
