@@ -98,8 +98,7 @@ exports.handler = async (event) => {
                         await new Promise(x => setTimeout(x, 200));
                         await clearNeedAgentLabel(psid);
                         await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
-                        // (tuỳ chọn) gợi ý tiếp
-                        // await sendQuickPriceOptions(psid);
+
                     }
                     continue;
                 }
@@ -150,7 +149,7 @@ exports.handler = async (event) => {
                     if (payload === "RESUME_BOT") {
 
                         await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
-                        await sendTyping(psid, false);
+                        await sendTyping(psid, true);
                         continue;
                     }
                     //stop spamming
@@ -161,7 +160,7 @@ exports.handler = async (event) => {
                         if (!res.allowed) {
                             await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
 
-                            await sendTyping(psid, false);
+                            await sendTyping(psid, true);
 
                             continue;
                         }
@@ -186,7 +185,7 @@ exports.handler = async (event) => {
                             await sendTyping(psid, true);
                             await new Promise(resolve => setTimeout(resolve, 2000)); // 2 seconds delay
                             await sendText(psid, "Dạ, mình cần tiệm hỗ trợ gì ạ?");
-                            await sendTyping(psid, false);
+                            await sendTyping(psid, true);
                             const r = await passThreadToHuman(psid, "user_request_human");
                             console.log("pass_thread_control:", r);
                             await logThreadOwner(psid);
