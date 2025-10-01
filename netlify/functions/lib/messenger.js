@@ -46,10 +46,14 @@ async function sendText(psid, text) {
 }
 
 async function sendTyping(psid, on = true) {
-    return callGraph({
+    const started = Date.now();
+    const action = on ? "typing_on" : "typing_off";
+    const res = await callGraph({
         recipient: { id: psid },
-        sender_action: on ? "typing_on" : "typing_off",
+        sender_action: action,
     });
+    console.log("sendTyping", { psid, action, latencyMs: Date.now() - started });
+    return res;
 }
 
 async function sendQuickPriceOptions(psid) {
@@ -92,18 +96,14 @@ async function sendHandoverCard(psid) {
     });
 }
 
-async function sendPriceWithNote(psid, label) {
+async function sendPriceWithNote(psid, label, { delayBetweenMs = 350 } = {}) {
     const d = await fetchPrice(label);
     if (isBusinessHour() && (!d || !d.buyVND || !d.sellVND)) {
         await sendText(psid, apologyUpdateText());
-        return false; // không có giá → không gửi "Lưu ý"
+        return false;
     } else if (isBusinessHour()) {
-        // 1) gửi lưu ý
-        await sendText(
-            psid,
-            "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá tối đa 2 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️"
-        );
-        // 2) gửi giá
+        await sendText(psid, "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá tối đa 2 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️");
+        if (delayBetweenMs > 0) await new Promise(r => setTimeout(r, delayBetweenMs));
         await sendText(psid, formatPrice(d));
         return true;
     } else {

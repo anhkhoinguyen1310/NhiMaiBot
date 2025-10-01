@@ -41,7 +41,7 @@ function isAdminKey(s = "") { return ADMIN_KEYS.has(normalizeKey(s)); }
 function isResetLimitKey(s = "") { return RESET_LIMIT_KEYS.has(normalizeKey(s)); }
 
 // Helper to wrap work in a typing indicator with a minimum visible duration
-async function withTyping(psid, workFn, { minMs = 700, preDelayMs = 0 } = {}) {
+async function withTyping(psid, workFn, { minMs = 900, preDelayMs = 0 } = {}) {
     const start = Date.now();
     await sendTyping(psid, true);
     try {
@@ -185,8 +185,8 @@ exports.handler = async (event) => {
                                 PRICE_VANG_18K: "Nữ Trang 610",
                                 PRICE_VANG_24K: "Nữ Trang 980",
                             };
-                            await sendPriceWithNote(psid, labelMap[payload]);
-                        }, { preDelayMs: 600, minMs: 900 });
+                            await sendPriceWithNote(psid, labelMap[payload], { delayBetweenMs: 450 });
+                        }, { preDelayMs: 500, minMs: 1100 });
                         continue;
                     }
 
@@ -269,8 +269,17 @@ exports.handler = async (event) => {
                             await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
                             return;
                         }
-                        await sendPriceWithNote(psid, intent.label);
-                    }, { preDelayMs: 600, minMs: 900 });
+                        await sendPriceWithNote(psid, intent.label, { delayBetweenMs: 450 });
+                    }, { preDelayMs: 500, minMs: 1100 });
+                    continue;
+                }
+                // debug command to test typing visibility
+                if (normalizeKey(text) === 'typingtest') {
+                    await withTyping(psid, async () => {
+                        await sendText(psid, 'Đang test typing ... sẽ trả kết quả sau một lát');
+                        await new Promise(r => setTimeout(r, 1200));
+                        await sendText(psid, 'Hoàn tất test typing');
+                    }, { preDelayMs: 300, minMs: 1500 });
                     continue;
                 }
                 // không hiểu → gợi ý
