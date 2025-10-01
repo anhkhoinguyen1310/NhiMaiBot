@@ -40,25 +40,6 @@ function normalizeKey(s = "") {
 function isAdminKey(s = "") { return ADMIN_KEYS.has(normalizeKey(s)); }
 function isResetLimitKey(s = "") { return RESET_LIMIT_KEYS.has(normalizeKey(s)); }
 
-// Helper to wrap work in a typing indicator with a minimum visible duration
-async function withTyping(psid, workFn, { minMs = 900, preDelayMs = 0 } = {}) {
-    const start = Date.now();
-    await sendTyping(psid, true);
-    try {
-        if (preDelayMs > 0) {
-            await new Promise(r => setTimeout(r, preDelayMs));
-        }
-        const res = await workFn();
-        const elapsed = Date.now() - start;
-        if (elapsed < minMs) {
-            await new Promise(r => setTimeout(r, minMs - elapsed));
-        }
-        return res;
-    } finally {
-        await sendTyping(psid, false);
-    }
-}
-
 async function logThreadOwner(psid) {
     const PAGE_ID = process.env.PAGE_ID;
     const ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
@@ -159,6 +140,7 @@ exports.handler = async (event) => {
                 // ---- payload trước
                 const payload = ev.message?.quick_reply?.payload || ev.postback?.payload || null;
                 if (payload) {
+                    await sendTyping(psid, true);
                     // record interaction for 24h rolling window
                     try { await recordEvent24h(psid, { kind: "payload", payload }); } catch (e) { console.log("recordEvent24h(payload)", e?.message || e); }
 
@@ -167,32 +149,30 @@ exports.handler = async (event) => {
                     if (payload === "RESUME_BOT") {
 
                         await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
-                        await sendTyping(psid, false);
+                        await sendTyping(psid, true);
                         continue;
                     }
-                    const pricePayloads = ["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"];
-                    if (pricePayloads.includes(payload)) {
-                        await withTyping(psid, async () => {
-                            const res = await consumeAsk1hByMinutes(psid);
-                            console.log("limiter(1h atlas):", { psid, res });
-                            if (!res.allowed) {
-                                await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
-                                return;
-                            }
-                            // Map payload to label and send price
-                            const labelMap = {
-                                PRICE_NHAN_9999: "Nhẫn 9999",
-                                PRICE_VANG_18K: "Nữ Trang 610",
-                                PRICE_VANG_24K: "Nữ Trang 980",
-                            };
-                            await sendPriceWithNote(psid, labelMap[payload], { delayBetweenMs: 450 });
-                        }, { preDelayMs: 500, minMs: 1100 });
-                        continue;
+                    //stop spamming
+                    if (["PRICE_NHAN_9999", "PRICE_VANG_18K", "PRICE_VANG_24K"].includes(payload)) {
+                        await sendTyping(psid, true);
+                        const res = await consumeAsk1hByMinutes(psid);
+                        console.log("limiter(1h atlas):", { psid, res });
+                        if (!res.allowed) {
+                            await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
+
+                            await sendTyping(psid, true);
+
+                            continue;
+                        }
+
                     }
 
 
                     var label = null;
                     switch (payload) {
+                        case "PRICE_NHAN_9999": label = "Nhẫn 9999"; break;
+                        case "PRICE_VANG_18K": label = "Nữ Trang 610"; break;
+                        case "PRICE_VANG_24K": label = "Nữ Trang 980"; break;
                         case "TALK_TO_AGENT": {
                             // 1) gắn nhãn để agent lọc kịp thời
                             try {
@@ -204,8 +184,8 @@ exports.handler = async (event) => {
                             // 3) delay 2s rồi gửi text hỏi thăm
                             await sendTyping(psid, true);
                             await new Promise(resolve => setTimeout(resolve, 2000)); // 2 seconds delay
+                            await sendTyping(psid, true);
                             await sendText(psid, "Dạ, mình cần tiệm hỗ trợ gì ạ?");
-                            await sendTyping(psid, false);
                             const r = await passThreadToHuman(psid, "user_request_human");
                             console.log("pass_thread_control:", r);
                             await logThreadOwner(psid);
@@ -213,7 +193,13 @@ exports.handler = async (event) => {
                         }
                     }
 
-                    // Non-price payloads fall through here (e.g. TALK_TO_AGENT handled above)
+                    var label =
+                        payload === "PRICE_NHAN_9999" ? "Nhẫn 9999" :
+                            payload === "PRICE_VANG_18K" ? "Nữ Trang 610" :
+                                "Nữ Trang 980";
+                    await sendTyping(psid, false);
+                    await sendPriceWithNote(psid, label); // ← chỉ gửi note khi có giá
+
                     continue;
                 }
 
@@ -227,8 +213,6 @@ exports.handler = async (event) => {
                 const intent = detectType(text);
 
                 if (isAdminKey(text)) {
-                    const started = Date.now();
-                    await sendTyping(psid, true);
                     const [uniqueUsersToday, msgsToday, vdkClicksToday, vdkUsersToday] = await Promise.all([
                         countUniquePsidToday(),
                         countMessagesTodayVN(),
@@ -244,42 +228,32 @@ exports.handler = async (event) => {
                         `📈 Trung bình: ${avgToday} tin/người`,
                         `⏰ Cập nhật: ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
                     ].join("\n");
-                    // ensure typing visible at least 400ms for UX
-                    const elapsed = Date.now() - started;
-                    if (elapsed < 400) await new Promise(r => setTimeout(r, 400 - elapsed));
+                    await sendTyping(psid, true);
                     await sendText(psid, message);
-                    await sendTyping(psid, false);
 
                     continue;
                 }
                 if (isResetLimitKey(text)) {
-                    await sendTyping(psid, true);
                     await resetUserLimit(psid);
+                    await sendTyping(psid, true);
                     await sendText(psid, "😵‍💫 Gỡ chặn rồi đó, hỏi gì hỏi tiếp đi đồ độc ác!");
-                    await sendTyping(psid, false);
                     continue;
                 }
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
                 if (intent.type === "thanks") { await sendText(psid, "Dạ không có gì ạ ❤️!"); await sendTyping(psid, false); continue; }
                 if (intent.type === "price") {
-                    await withTyping(psid, async () => {
-                        const res = await consumeAsk1hByMinutes(psid);
-                        console.log("limiter(1h atlas):", { psid, res });
-                        if (!res.allowed) {
-                            await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
-                            return;
-                        }
-                        await sendPriceWithNote(psid, intent.label, { delayBetweenMs: 450 });
-                    }, { preDelayMs: 500, minMs: 1100 });
-                    continue;
-                }
-                // debug command to test typing visibility
-                if (normalizeKey(text) === 'typingtest') {
-                    await withTyping(psid, async () => {
-                        await sendText(psid, 'Đang test typing ... sẽ trả kết quả sau một lát');
-                        await new Promise(r => setTimeout(r, 1200));
-                        await sendText(psid, 'Hoàn tất test typing');
-                    }, { preDelayMs: 300, minMs: 1500 });
+                    await sendTyping(psid, true);
+
+                    const res = await consumeAsk1hByMinutes(psid);
+                    console.log("limiter(1h atlas):", { psid, res });
+                    if (!res.allowed) {
+                        await sendTyping(psid, false);
+                        await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
+                        continue;
+                    }
+
+                    await sendPriceWithNote(psid, intent.label); // ← chỉ gửi note khi có giá
+                    await sendTyping(psid, false);
                     continue;
                 }
                 // không hiểu → gợi ý
