@@ -140,6 +140,7 @@ exports.handler = async (event) => {
                 // ---- payload trước
                 const payload = ev.message?.quick_reply?.payload || ev.postback?.payload || null;
                 if (payload) {
+                    // show typing while processing payload intent
                     await sendTyping(psid, true);
                     // record interaction for 24h rolling window
                     try { await recordEvent24h(psid, { kind: "payload", payload }); } catch (e) { console.log("recordEvent24h(payload)", e?.message || e); }
@@ -149,7 +150,7 @@ exports.handler = async (event) => {
                     if (payload === "RESUME_BOT") {
 
                         await sendText(psid, "❤️ Xin cảm ơn anh/chị đã ủng hộ tiệm ❤️");
-                        await sendTyping(psid, true);
+                        await sendTyping(psid, false);
                         continue;
                     }
                     //stop spamming
@@ -184,8 +185,8 @@ exports.handler = async (event) => {
                             // 3) delay 2s rồi gửi text hỏi thăm
                             await sendTyping(psid, true);
                             await new Promise(resolve => setTimeout(resolve, 2000)); // 2 seconds delay
-                            await sendTyping(psid, true);
                             await sendText(psid, "Dạ, mình cần tiệm hỗ trợ gì ạ?");
+                            await sendTyping(psid, false);
                             const r = await passThreadToHuman(psid, "user_request_human");
                             console.log("pass_thread_control:", r);
                             await logThreadOwner(psid);
@@ -197,9 +198,8 @@ exports.handler = async (event) => {
                         payload === "PRICE_NHAN_9999" ? "Nhẫn 9999" :
                             payload === "PRICE_VANG_18K" ? "Nữ Trang 610" :
                                 "Nữ Trang 980";
+                    const noteSent = await sendPriceWithNote(psid, label); // ← chỉ gửi note khi có giá
                     await sendTyping(psid, false);
-                    await sendPriceWithNote(psid, label); // ← chỉ gửi note khi có giá
-
                     continue;
                 }
 
@@ -213,6 +213,8 @@ exports.handler = async (event) => {
                 const intent = detectType(text);
 
                 if (isAdminKey(text)) {
+                    const started = Date.now();
+                    await sendTyping(psid, true);
                     const [uniqueUsersToday, msgsToday, vdkClicksToday, vdkUsersToday] = await Promise.all([
                         countUniquePsidToday(),
                         countMessagesTodayVN(),
@@ -228,15 +230,19 @@ exports.handler = async (event) => {
                         `📈 Trung bình: ${avgToday} tin/người`,
                         `⏰ Cập nhật: ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
                     ].join("\n");
-                    await sendTyping(psid, true);
+                    // ensure typing visible at least 400ms for UX
+                    const elapsed = Date.now() - started;
+                    if (elapsed < 400) await new Promise(r => setTimeout(r, 400 - elapsed));
                     await sendText(psid, message);
+                    await sendTyping(psid, false);
 
                     continue;
                 }
                 if (isResetLimitKey(text)) {
-                    await resetUserLimit(psid);
                     await sendTyping(psid, true);
+                    await resetUserLimit(psid);
                     await sendText(psid, "😵‍💫 Gỡ chặn rồi đó, hỏi gì hỏi tiếp đi đồ độc ác!");
+                    await sendTyping(psid, false);
                     continue;
                 }
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
