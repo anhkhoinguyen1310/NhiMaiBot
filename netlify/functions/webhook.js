@@ -184,8 +184,8 @@ exports.handler = async (event) => {
                             // 3) delay 2s rồi gửi text hỏi thăm
                             await sendTyping(psid, true);
                             await new Promise(resolve => setTimeout(resolve, 2000)); // 2 seconds delay
-                            await sendText(psid, "Dạ, mình cần tiệm hỗ trợ gì ạ?");
                             await sendTyping(psid, true);
+                            await sendText(psid, "Dạ, mình cần tiệm hỗ trợ gì ạ?");
                             const r = await passThreadToHuman(psid, "user_request_human");
                             console.log("pass_thread_control:", r);
                             await logThreadOwner(psid);
@@ -197,9 +197,9 @@ exports.handler = async (event) => {
                         payload === "PRICE_NHAN_9999" ? "Nhẫn 9999" :
                             payload === "PRICE_VANG_18K" ? "Nữ Trang 610" :
                                 "Nữ Trang 980";
-
-                    await sendPriceWithNote(psid, label); // ← chỉ gửi note khi có giá
                     await sendTyping(psid, false);
+                    await sendPriceWithNote(psid, label); // ← chỉ gửi note khi có giá
+
                     continue;
                 }
 
@@ -228,14 +228,15 @@ exports.handler = async (event) => {
                         `📈 Trung bình: ${avgToday} tin/người`,
                         `⏰ Cập nhật: ${new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
                     ].join("\n");
-                    await sendText(psid, message);
                     await sendTyping(psid, true);
+                    await sendText(psid, message);
+
                     continue;
                 }
                 if (isResetLimitKey(text)) {
                     await resetUserLimit(psid);
-                    await sendText(psid, "😵‍💫 Gỡ chặn rồi đó, hỏi gì hỏi tiếp đi đồ độc ác!");
                     await sendTyping(psid, true);
+                    await sendText(psid, "😵‍💫 Gỡ chặn rồi đó, hỏi gì hỏi tiếp đi đồ độc ác!");
                     continue;
                 }
                 if (intent.type === "ignore") { await sendTyping(psid, false); continue; }
@@ -246,8 +247,8 @@ exports.handler = async (event) => {
                     const res = await consumeAsk1hByMinutes(psid);
                     console.log("limiter(1h atlas):", { psid, res });
                     if (!res.allowed) {
-                        await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
                         await sendTyping(psid, false);
+                        await sendText(psid, `📢 Hệ thống đang cập nhật giá. Quý khách vui lòng quay lại sau ${minutesLeft(res.blockedSec)} phút nữa. Xin cám ơn quý khách.`);
                         continue;
                     }
 
