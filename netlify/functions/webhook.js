@@ -221,7 +221,7 @@ exports.handler = async (event) => {
                     ]);
                     const avgToday = uniqueUsersToday > 0 ? (msgsToday / uniqueUsersToday).toFixed(1) : 0;
                     const message = [
-                        "📊 THỐNG KÊ HÔM NAY (VN):",
+                        "📊 THỐNG KÊ HÔM NAY:",
                         `🧑‍💼 Tổng số người nhắn tin: ${uniqueUsersToday}`,
                         `💬 Tổng tin nhắn: ${msgsToday}`,
                         `🆘 Vấn Đề Khác: ${vdkClicksToday} click / ${vdkUsersToday} người`,
