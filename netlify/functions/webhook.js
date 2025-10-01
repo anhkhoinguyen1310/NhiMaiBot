@@ -1,20 +1,6 @@
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const APP_ID = process.env.APP_ID;
 const PAGE_ID = process.env.PAGE_ID;
-
-function buildKeySet(raw) {
-    if (!raw) return new Set();
-    return new Set(raw.split(/[,;\n]/)
-        .map(s => s.trim().toLowerCase())
-        .filter(Boolean)
-        .map(s => s.normalize("NFD").replace(/\p{Diacritic}/gu, ""))
-    );
-}
-
-const ADMIN_KEYS = buildKeySet(process.env.ADMIN_KEYS);
-const UNLOCK_KEYS = buildKeySet(process.env.UNLOCK_KEYS);
-const RESET_LIMIT_KEYS = buildKeySet(process.env.RESET_LIMIT_KEYS);
-
 const { detectType } = require("./lib/intent");
 const {
     sendText, sendQuickPriceOptions, sendTyping,
@@ -35,7 +21,17 @@ const {
     countVanDeKhacUsersTodayVN,
 } = require("./lib/stats");
 const { consumeAsk1hByMinutes, minutesLeft, resetUserLimit } = require("./lib/rateLimiterByMinute");
-
+function buildKeySet(raw) {
+    if (!raw) return new Set();
+    return new Set(raw.split(/[,;\n]/)
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean)
+        .map(s => s.normalize("NFD").replace(/\p{Diacritic}/gu, ""))
+    );
+}
+const ADMIN_KEYS = buildKeySet(process.env.ADMIN_KEYS);
+const UNLOCK_KEYS = buildKeySet(process.env.UNLOCK_KEYS);
+const RESET_LIMIT_KEYS = buildKeySet(process.env.RESET_LIMIT_KEYS);
 
 function normalizeKey(s = "") {
     return s.toString().trim().toLowerCase()
