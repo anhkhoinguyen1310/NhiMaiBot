@@ -41,10 +41,13 @@ function isAdminKey(s = "") { return ADMIN_KEYS.has(normalizeKey(s)); }
 function isResetLimitKey(s = "") { return RESET_LIMIT_KEYS.has(normalizeKey(s)); }
 
 // Helper to wrap work in a typing indicator with a minimum visible duration
-async function withTyping(psid, workFn, minMs = 500) {
+async function withTyping(psid, workFn, { minMs = 700, preDelayMs = 0 } = {}) {
     const start = Date.now();
+    await sendTyping(psid, true);
     try {
-        await sendTyping(psid, true);
+        if (preDelayMs > 0) {
+            await new Promise(r => setTimeout(r, preDelayMs));
+        }
         const res = await workFn();
         const elapsed = Date.now() - start;
         if (elapsed < minMs) {
@@ -183,7 +186,7 @@ exports.handler = async (event) => {
                                 PRICE_VANG_24K: "Nữ Trang 980",
                             };
                             await sendPriceWithNote(psid, labelMap[payload]);
-                        });
+                        }, { preDelayMs: 600, minMs: 900 });
                         continue;
                     }
 
@@ -267,7 +270,7 @@ exports.handler = async (event) => {
                             return;
                         }
                         await sendPriceWithNote(psid, intent.label);
-                    });
+                    }, { preDelayMs: 600, minMs: 900 });
                     continue;
                 }
                 // không hiểu → gợi ý
