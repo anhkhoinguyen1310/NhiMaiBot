@@ -1,6 +1,13 @@
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const GRAPH_BASE = "https://graph.facebook.com/v18.0";
 const PAGE_ID = process.env.PAGE_ID;
+// --- Early close configuration (optional) ---
+// Set EARLY_CLOSE_DATE (YYYY-MM-DD, Asia/Ho_Chi_Minh) and EARLY_CLOSE_HOUR (24h) in env to activate.
+// Example (for a one-off early close at 17:00 on 2025-10-08):
+// EARLY_CLOSE_DATE=2025-10-08
+// EARLY_CLOSE_HOUR=17
+const EARLY_CLOSE_DATE = process.env.EARLY_CLOSE_DATE; // format: YYYY-MM-DD
+const EARLY_CLOSE_HOUR = parseInt(process.env.EARLY_CLOSE_HOUR || "17", 10); // default 17 if provided
 const { apologyText, formatPrice, apologyUpdateText } = require("./format");
 const { fetchPrice } = require("./price");
 const { DateTime } = require("luxon");
@@ -13,6 +20,12 @@ function getHoChiMinhNow() {
 function isBusinessHour(dt = getHoChiMinhNow()) {
     const hour = dt.hour;
     return hour >= 7 && hour < 21;
+}
+
+function isEarlyCloseActive(dt = getHoChiMinhNow()) {
+    if (!EARLY_CLOSE_DATE) return false;
+    const dayStr = dt.toFormat("yyyy-LL-dd");
+    return dayStr === EARLY_CLOSE_DATE;
 }
 
 async function callGraph(body) {
@@ -97,19 +110,38 @@ async function sendHandoverCard(psid) {
 }
 
 async function sendPriceWithNote(psid, label, { delayBetweenMs = 350 } = {}) {
-    const d = await fetchPrice(label);
-    if (isBusinessHour() && (!d || !d.buyVND || !d.sellVND)) {
-        await sendText(psid, apologyUpdateText());
+    const now = getHoChiMinhNow();
+    const earlyCloseToday = isEarlyCloseActive(now);
+
+    // If today is an early close day and we've passed the early close hour, treat as closed.
+    if (earlyCloseToday && now.hour >= EARLY_CLOSE_HOUR) {
+        await sendText(psid, `🙏 Tiệm đã đóng cửa sớm lúc ${EARLY_CLOSE_HOUR}:00 hôm nay. Mai tiệm hoạt động bình thường (7:00 - 21:00). Quý khách vui lòng quay lại sau ạ ❤️`);
         return false;
-    } else if (isBusinessHour()) {
-        await sendText(psid, "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá tối đa 2 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️");
-        if (delayBetweenMs > 0) await new Promise(r => setTimeout(r, delayBetweenMs));
-        await sendText(psid, formatPrice(d));
-        return true;
-    } else {
+    }
+
+    // Outside normal business hours (and not in the special early-close window before the cut). 
+    if (!isBusinessHour(now)) {
         await sendText(psid, apologyText());
         return false;
     }
+
+    // We're within business hours. Fetch price.
+    const d = await fetchPrice(label);
+    if (!d || !d.buyVND || !d.sellVND) {
+        await sendText(psid, apologyUpdateText());
+        return false;
+    }
+
+    // If it's the early close day but still before early close hour, prepend a notice.
+    if (earlyCloseToday && now.hour < EARLY_CLOSE_HOUR) {
+        await sendText(psid, `📢 Thông báo: Hôm nay tiệm sẽ đóng cửa sớm lúc ${EARLY_CLOSE_HOUR}:00. Quý khách vui lòng ghé hoặc giao dịch trước ${EARLY_CLOSE_HOUR}:00 ạ.`);
+    }
+
+    // Standard overload / rate reminder note.
+    await sendText(psid, "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá tối đa 2 lần 1 tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️");
+    if (delayBetweenMs > 0) await new Promise(r => setTimeout(r, delayBetweenMs));
+    await sendText(psid, formatPrice(d));
+    return true;
 }
 
 
