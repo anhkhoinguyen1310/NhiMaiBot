@@ -7,6 +7,8 @@ const {
     passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel,
     sendPriceWithNote
 } = require("./lib/messenger");
+// Lazy import early close status (avoid circular if any)
+const { getEarlyCloseStatus } = require("./lib/messenger");
 const {
     countUniquePsidToday,
     countDailyMessages,
@@ -230,6 +232,24 @@ exports.handler = async (event) => {
                     ].join("\n");
                     await sendTyping(psid, true);
                     await sendText(psid, message);
+
+                    continue;
+                }
+                // Early close status command for admins: ecstatus / close? / early?
+                if (["ecstatus", "close?", "early?"].includes(text.trim().toLowerCase())) {
+                    if (!isAdminKey(text)) { await sendTyping(psid, false); continue; }
+                    const st = getEarlyCloseStatus();
+                    const lines = [
+                        "⏱ EARLY CLOSE STATUS:",
+                        `Date active: ${st.EARLY_CLOSE_DATE || '—'}`,
+                        `Cut hour: ${st.EARLY_CLOSE_HOUR}`,
+                        `Test now: ${st.EARLY_CLOSE_TEST_NOW || '—'}`,
+                        `Now (server interpreted): ${st.now}`,
+                        `Hour: ${st.hour}`,
+                        `Active today: ${st.activeToday}`,
+                        `After cut: ${st.afterCut}`
+                    ].join("\n");
+                    await sendText(psid, lines);
 
                     continue;
                 }

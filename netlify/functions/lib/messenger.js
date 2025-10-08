@@ -28,6 +28,20 @@ function isEarlyCloseActive(dt = getHoChiMinhNow()) {
     return dayStr === EARLY_CLOSE_DATE;
 }
 
+function getEarlyCloseStatus() {
+    const now = getHoChiMinhNow();
+    const activeToday = isEarlyCloseActive(now);
+    return {
+        EARLY_CLOSE_DATE,
+        EARLY_CLOSE_HOUR,
+        EARLY_CLOSE_TEST_NOW: process.env.EARLY_CLOSE_TEST_NOW || null,
+        now: now.toISO(),
+        hour: now.hour,
+        activeToday,
+        afterCut: activeToday ? now.hour >= EARLY_CLOSE_HOUR : false
+    };
+}
+
 async function callGraph(body) {
     const r = await fetch(`${GRAPH_BASE}/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
         method: "POST",
@@ -112,6 +126,7 @@ async function sendHandoverCard(psid) {
 async function sendPriceWithNote(psid, label, { delayBetweenMs = 350 } = {}) {
     const now = getHoChiMinhNow();
     const earlyCloseToday = isEarlyCloseActive(now);
+    console.log("early-close-debug", getEarlyCloseStatus());
 
     // If today is an early close day and we've passed the early close hour, treat as closed.
     if (earlyCloseToday && now.hour >= EARLY_CLOSE_HOUR) {
