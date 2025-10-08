@@ -149,7 +149,7 @@ async function sendPriceWithNote(psid, label, { delayBetweenMs = 350 } = {}) {
 
     // If it's the early close day but still before early close hour, prepend a notice.
     if (earlyCloseToday && now.hour < EARLY_CLOSE_HOUR) {
-        await sendText(psid, `📢 Thông báo: Hôm nay tiệm sẽ đóng cửa sớm lúc ${EARLY_CLOSE_HOUR}:00. Quý khách vui lòng ghé hoặc giao dịch trước ${EARLY_CLOSE_HOUR}:00 ạ.`);
+        await sendText(psid, `📢 📢 Thông báo : Hôm nay tiệm sẽ đóng cửa sớm lúc ${EARLY_CLOSE_HOUR}:00. Quý khách vui lòng ghé hoặc giao dịch trước ${EARLY_CLOSE_HOUR}:00 ạ.`);
     }
 
     // Standard overload / rate reminder note.
