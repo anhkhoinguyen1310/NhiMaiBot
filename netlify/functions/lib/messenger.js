@@ -102,10 +102,14 @@ async function sendQuickPriceOptions(psid) {
         },
     });
 }
-async function sendDisabledNotice(psid, { addCallButton = true } = {}) {
-    // Quick replies support only: text | location | user_phone_number | user_email
-    // We just keep the TALK_TO_AGENT quick reply (text). Phone quick reply type would be 'user_phone_number' (returns user's number),
-    // but we want a direct call button, so we send a second button template when requested.
+async function sendDisabledNotice(psid) {
+    const now = getHoChiMinhNow();
+    // Outside business hours → reuse normal apology so user sees standard closed message
+    if (!isBusinessHour(now)) {
+        await sendText(psid, apologyText());
+        return false;
+    }
+    // Business hours but bot disabled → show disabled notice + quick reply
     await callGraph({
         recipient: { id: psid },
         messaging_type: "RESPONSE",
@@ -116,6 +120,7 @@ async function sendDisabledNotice(psid, { addCallButton = true } = {}) {
             ]
         }
     });
+    return true;
 }
 async function sendHandoverCard(psid) {
     return callGraph({
@@ -172,7 +177,7 @@ async function sendPriceWithNote(psid, label, { delayBetweenMs = 350 } = {}) {
     }
 
     // Standard overload / rate reminder note.
-    await sendText(psid, "Xin chào quý khách, từ ngày 15/10 Bot báo giá tự động sẽ ngưng hoạt động cho đến khi có thông báo mới nhất từ tiệm. Tiệm cảm ơn quý khách đã ủng hộ bot trong suốt thời gian qua. Nếu quý khách muốn cập nhật giá, xin hãy gọi đến số 0932113113 ❤️");
+    //await sendText(psid, "Xin chào quý khách, từ ngày 15/10 Bot báo giá tự động sẽ ngưng hoạt động cho đến khi có thông báo mới nhất từ tiệm. Tiệm cảm ơn quý khách đã ủng hộ bot trong suốt thời gian qua. Nếu quý khách muốn cập nhật giá, xin hãy gọi đến số 0932113113 ❤️");
     await sendText(psid, "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá 1️⃣ lần 1️⃣ tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️");
     if (delayBetweenMs > 0) await new Promise(r => setTimeout(r, delayBetweenMs));
     await sendText(psid, formatPrice(d));
