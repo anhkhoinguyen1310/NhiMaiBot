@@ -110,7 +110,8 @@ async function sendDisabledNotice(psid) {
         message: {
             text: BOT_DISABLED_MESSAGE,
             quick_replies: [
-                { content_type: "text", title: "Vấn Đề Khác", payload: "TALK_TO_AGENT" }
+                { content_type: "text", title: "Vấn Đề Khác", payload: "TALK_TO_AGENT" },
+                { content_type: "text", title: "Gọi Tiệm", payload: "+84932113113" }
             ]
         }
     });
