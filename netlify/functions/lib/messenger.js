@@ -116,24 +116,6 @@ async function sendDisabledNotice(psid, { addCallButton = true } = {}) {
             ]
         }
     });
-    if (addCallButton) {
-        await callGraph({
-            recipient: { id: psid },
-            messaging_type: "RESPONSE",
-            message: {
-                attachment: {
-                    type: "template",
-                    payload: {
-                        template_type: "button",
-                        text: "📞 Cần gấp? Gọi nhanh tiệm:",
-                        buttons: [
-                            { type: "phone_number", title: "Gọi Tiệm", payload: "+84932113113" }
-                        ]
-                    }
-                }
-            }
-        });
-    }
 }
 async function sendHandoverCard(psid) {
     return callGraph({
