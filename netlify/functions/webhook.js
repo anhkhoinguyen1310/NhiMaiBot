@@ -3,24 +3,19 @@ const APP_ID = process.env.APP_ID;
 const PAGE_ID = process.env.PAGE_ID;
 // Global kill-switch to temporarily disable bot responses
 const BOT_DISABLED = String(process.env.BOT_DISABLED || "").toLowerCase() === "true";
-const BOT_DISABLED_MESSAGE = process.env.BOT_DISABLED_MESSAGE || "🙏 Tiệm hiện tạm ngưng trả lời tự động. Quý khách vui lòng nhắn lại sau hoặc gọi 0932 113 113. Xin cảm ơn ạ.";
+// BOT_DISABLED_MESSAGE now defined & exported in messenger.js; sendDisabledNotice imported
 const { detectType } = require("./lib/intent");
 const {
     sendText, sendQuickPriceOptions, sendTyping,
     passThreadToHuman, takeThreadBack, sendHandoverCard, requestThreadBack, addLabelToUser, getOrCreateLabelId, clearNeedAgentLabel,
-    sendPriceWithNote
+    sendPriceWithNote, sendDisabledNotice, BOT_DISABLED_MESSAGE
 } = require("./lib/messenger");
 // Lazy import early close status (avoid circular if any)
 const { getEarlyCloseStatus } = require("./lib/messenger");
 const {
     countUniquePsidToday,
-    countDailyMessages,
     recordEvent24h,
-    countMessagesLast24h,
-    countActiveUsersLast24h,
     ensureStatsIndexes,
-    countVanDeKhacClicksLast24h,
-    countVanDeKhacUsersLast24h,
     countMessagesTodayVN,
     countVanDeKhacClicksTodayVN,
     countVanDeKhacUsersTodayVN,
@@ -131,13 +126,14 @@ exports.handler = async (event) => {
                 if (BOT_DISABLED) {
                     const payload = ev.message?.quick_reply?.payload || ev.postback?.payload || null;
                     const text = ev.message?.text || "";
-                    // Allow admin stats and reset keys to still function if needed
-                    if (!payload && !text) { continue; }
-                    // If user explicitly hits RESUME_BOT button, let existing handover resume handler below run.
-                    if (payload === "RESUME_BOT") {
-                        // fallthrough to normal handling of RESUME_BOT
+                    if (isAdminKey(text) || isResetLimitKey(text) || payload === "RESUME_BOT") {
+                        // allow admin and resume flows
+                    } else if (payload === "TALK_TO_AGENT") {
+                        // allow human handover
+                    } else if (payload || text) {
+                        await sendDisabledNotice(psid);
+                        continue;
                     } else {
-                        try { await sendText(psid, BOT_DISABLED_MESSAGE); } catch { }
                         continue;
                     }
                 }
@@ -268,7 +264,6 @@ exports.handler = async (event) => {
                         `After cut: ${st.afterCut}`
                     ].join("\n");
                     await sendText(psid, lines);
-
                     continue;
                 }
                 if (isResetLimitKey(text)) {
