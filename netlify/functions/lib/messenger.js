@@ -153,6 +153,7 @@ async function sendPriceWithNote(psid, label, { delayBetweenMs = 350 } = {}) {
     }
 
     // Standard overload / rate reminder note.
+    await sendText(psid, "Xin chào quý khách, từ ngày 15/10 Bot báo giá tự động sẽ ngưng hoạt động cho đến khi có thông báo mới nhất từ tiệm. Tiệm cảm ơn quý khách đã ủng hộ bot trong suốt thời gian qua. Nếu quý khách muốn cập nhật giá, xin hãy gọi đến số 0932113113 ❤️");
     await sendText(psid, "❗❗Lưu ý: Do lượng tin nhắn đang quá tải, quý khách vui lòng chỉ nhắn hỏi giá 1️⃣ lần 1️⃣ tiếng.\n❤️ Tiệm cảm ơn quý khách ❤️");
     if (delayBetweenMs > 0) await new Promise(r => setTimeout(r, delayBetweenMs));
     await sendText(psid, formatPrice(d));

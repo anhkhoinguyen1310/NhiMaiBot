@@ -1,6 +1,9 @@
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const APP_ID = process.env.APP_ID;
 const PAGE_ID = process.env.PAGE_ID;
+// Global kill-switch to temporarily disable bot responses
+const BOT_DISABLED = String(process.env.BOT_DISABLED || "").toLowerCase() === "true";
+const BOT_DISABLED_MESSAGE = process.env.BOT_DISABLED_MESSAGE || "🙏 Tiệm hiện tạm ngưng trả lời tự động. Quý khách vui lòng nhắn lại sau hoặc gọi 0932 113 113. Xin cảm ơn ạ.";
 const { detectType } = require("./lib/intent");
 const {
     sendText, sendQuickPriceOptions, sendTyping,
@@ -123,6 +126,21 @@ exports.handler = async (event) => {
             for (const ev of entry.messaging || []) {
                 const psid = ev.sender?.id;
                 if (!psid) continue;
+
+                // Global disable: still allow RESUME_BOT to work for admin flows but block normal messaging
+                if (BOT_DISABLED) {
+                    const payload = ev.message?.quick_reply?.payload || ev.postback?.payload || null;
+                    const text = ev.message?.text || "";
+                    // Allow admin stats and reset keys to still function if needed
+                    if (!payload && !text) { continue; }
+                    // If user explicitly hits RESUME_BOT button, let existing handover resume handler below run.
+                    if (payload === "RESUME_BOT") {
+                        // fallthrough to normal handling of RESUME_BOT
+                    } else {
+                        try { await sendText(psid, BOT_DISABLED_MESSAGE); } catch { }
+                        continue;
+                    }
+                }
 
 
                 // ✅ BẮT HANDOVER TRƯỚC
