@@ -102,19 +102,38 @@ async function sendQuickPriceOptions(psid) {
         },
     });
 }
-async function sendDisabledNotice(psid) {
-    // Disabled notice with a quick reply allowing human support request
-    return callGraph({
+async function sendDisabledNotice(psid, { addCallButton = true } = {}) {
+    // Quick replies support only: text | location | user_phone_number | user_email
+    // We just keep the TALK_TO_AGENT quick reply (text). Phone quick reply type would be 'user_phone_number' (returns user's number),
+    // but we want a direct call button, so we send a second button template when requested.
+    await callGraph({
         recipient: { id: psid },
         messaging_type: "RESPONSE",
         message: {
             text: BOT_DISABLED_MESSAGE,
             quick_replies: [
-                { content_type: "text", title: "Vấn Đề Khác", payload: "TALK_TO_AGENT" },
-                { content_type: "phone_number", title: "Gọi Tiệm", payload: "+84932113113" }
+                { content_type: "text", title: "Vấn Đề Khác", payload: "TALK_TO_AGENT" }
             ]
         }
     });
+    if (addCallButton) {
+        await callGraph({
+            recipient: { id: psid },
+            messaging_type: "RESPONSE",
+            message: {
+                attachment: {
+                    type: "template",
+                    payload: {
+                        template_type: "button",
+                        text: "📞 Cần gấp? Gọi nhanh tiệm:",
+                        buttons: [
+                            { type: "phone_number", title: "Gọi Tiệm", payload: "+84932113113" }
+                        ]
+                    }
+                }
+            }
+        });
+    }
 }
 async function sendHandoverCard(psid) {
     return callGraph({
