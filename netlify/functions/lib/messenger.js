@@ -130,7 +130,9 @@ async function sendHandoverCard(psid) {
                     //"👉 Báo giá tự động đã tắt. Sau khi trò chuyện xong với nhân viên, hãy bấm 'Kích Hoạt Báo Giá' tại tin nhắn này để kích hoạt lại báo giá tự động.",
                     buttons: [
                         //{ type: "postback", title: "Kích Hoạt Báo Giá", payload: "RESUME_BOT" },
+                        { type: "postback", title: "Kết Thúc Chat", payload: "RESUME_BOT" },
                         { type: "phone_number", title: "Gọi tiệm", payload: "+84932113113" }
+
                     ]
                 }
             }
