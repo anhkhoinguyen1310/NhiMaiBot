@@ -103,8 +103,17 @@ async function sendQuickPriceOptions(psid) {
     });
 }
 async function sendDisabledNotice(psid) {
-    // Single consolidated disabled notice
-    return sendText(psid, BOT_DISABLED_MESSAGE);
+    // Disabled notice with a quick reply allowing human support request
+    return callGraph({
+        recipient: { id: psid },
+        messaging_type: "RESPONSE",
+        message: {
+            text: BOT_DISABLED_MESSAGE,
+            quick_replies: [
+                { content_type: "text", title: "Vấn Đề Khác", payload: "TALK_TO_AGENT" }
+            ]
+        }
+    });
 }
 async function sendHandoverCard(psid) {
     return callGraph({
