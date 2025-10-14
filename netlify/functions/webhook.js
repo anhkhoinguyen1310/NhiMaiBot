@@ -14,6 +14,7 @@ const {
 const { getEarlyCloseStatus } = require("./lib/messenger");
 const {
     countUniquePsidToday,
+    countUniqueUsersTodayVN,
     recordEvent24h,
     ensureStatsIndexes,
     countMessagesTodayVN,
@@ -131,6 +132,10 @@ exports.handler = async (event) => {
                     } else if (payload === "TALK_TO_AGENT") {
                         // allow human handover
                     } else if (payload || text) {
+                        // Record the interaction for stats even when disabled
+                        try {
+                            await recordEvent24h(psid, { kind: payload ? "payload" : "text", payload: payload || undefined });
+                        } catch (e) { console.log("recordEvent24h(disabled)", e?.message || e); }
                         await sendDisabledNotice(psid);
                         continue;
                     } else {
@@ -230,12 +235,12 @@ exports.handler = async (event) => {
 
                 if (isAdminKey(text)) {
                     const [uniqueUsersToday, msgsToday, vdkClicksToday, vdkUsersToday] = await Promise.all([
-                        countUniquePsidToday(),
+                        countUniqueUsersTodayVN(),
                         countMessagesTodayVN(),
                         countVanDeKhacClicksTodayVN(),
                         countVanDeKhacUsersTodayVN(),
                     ]);
-                    const avgToday = uniqueUsersToday > 0 ? (msgsToday / uniqueUsersToday).toFixed(1) : 0;
+                    const avgToday = uniqueUsersToday > 0 ? (msgsToday / uniqueUsersToday).toFixed(1) : "0";
                     const message = [
                         "📊 THỐNG KÊ HÔM NAY:",
                         `🧑‍💼 Tổng số người nhắn tin: ${uniqueUsersToday}`,

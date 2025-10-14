@@ -177,6 +177,15 @@ async function countVanDeKhacUsersTodayVN() {
     return ids.length;
 }
 
+/** Count unique users who sent any event today (VN day) using ask_events_24h. */
+async function countUniqueUsersTodayVN() {
+    const db = await getDb();
+    await ensure24hIndexes(db);
+    const { start, end } = vnDayRange();
+    const ids = await db.collection("ask_events_24h").distinct("psid", { at: { $gte: start, $lt: end } });
+    return ids.length;
+}
+
 module.exports = {
     recordDailyUser,
     countUniquePsidToday,
@@ -193,4 +202,5 @@ module.exports = {
     countMessagesTodayVN,
     countVanDeKhacClicksTodayVN,
     countVanDeKhacUsersTodayVN,
+    countUniqueUsersTodayVN,
 };
