@@ -123,22 +123,21 @@ exports.handler = async (event) => {
                 const psid = ev.sender?.id;
                 if (!psid) continue;
 
-                // Global disable: still allow RESUME_BOT to work for admin flows but block normal messaging
+                // Global disable: completely silent, only allow admin stats
                 if (BOT_DISABLED) {
                     const payload = ev.message?.quick_reply?.payload || ev.postback?.payload || null;
                     const text = ev.message?.text || "";
-                    if (isAdminKey(text) || isResetLimitKey(text) || payload === "RESUME_BOT") {
-                        // allow admin and resume flows
-                    } else if (payload === "TALK_TO_AGENT") {
-                        // allow human handover
-                    } else if (payload || text) {
-                        // Record the interaction for stats even when disabled
-                        try {
-                            await recordEvent24h(psid, { kind: payload ? "payload" : "text", payload: payload || undefined });
-                        } catch (e) { console.log("recordEvent24h(disabled)", e?.message || e); }
-                        await sendDisabledNotice(psid);
-                        continue;
+
+                    // Record all interactions for stats tracking
+                    try {
+                        await recordEvent24h(psid, { kind: payload ? "payload" : "text", payload: payload || undefined });
+                    } catch (e) { console.log("recordEvent24h(disabled)", e?.message || e); }
+
+                    // Only respond to admin commands, otherwise stay completely silent
+                    if (isAdminKey(text) || isResetLimitKey(text)) {
+                        // allow admin stats commands to proceed
                     } else {
+                        // Stay silent - no automated responses at all
                         continue;
                     }
                 }
